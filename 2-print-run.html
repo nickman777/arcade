@@ -1,0 +1,817 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0a0d13">
+<title>Print Run</title>
+<style>
+  :root{
+    --bg:#0a0d13; --panel:#131824; --line:#232b3d; --text:#e9ecf2; --dim:#8b93a7;
+    --orange:#f26522; --green:#3ddc84; --red:#ff5252; --gold:#ffd166;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    overscroll-behavior:none; user-select:none; -webkit-user-select:none; touch-action:manipulation;}
+  #app{max-width:430px;margin:0 auto;padding:10px 10px calc(14px + env(safe-area-inset-bottom)) 10px;
+    display:flex;flex-direction:column;gap:8px;min-height:100dvh;}
+  header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:2px 2px 0 2px;}
+  .brand{font-weight:800;font-size:21px;letter-spacing:1.5px;line-height:1;}
+  .brand span{color:var(--orange);}
+  .brand .sub{font-weight:600;font-size:10px;letter-spacing:2.5px;color:var(--dim);margin-top:3px;}
+  .hud{text-align:right;}
+  .money{font-size:21px;font-weight:800;color:var(--green);line-height:1;}
+  .money.pop{animation:pop .35s;}
+  .hudrow{font-size:11px;color:var(--dim);margin-top:3px;display:flex;gap:6px;justify-content:flex-end;align-items:center;}
+  .lbl{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--dim);display:flex;align-items:center;justify-content:space-between;padding:0 2px;}
+  .lbl .hint{font-weight:500;letter-spacing:.4px;text-transform:none;color:#5b6478;}
+  .tray{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px 2px;min-height:112px;scroll-snap-type:x proximity;}
+  .tray::-webkit-scrollbar{display:none;}
+  .order{flex:0 0 auto;width:150px;background:var(--panel);border:1.5px solid var(--line);border-radius:12px;
+    padding:7px 9px 9px 9px;scroll-snap-align:start;position:relative;transition:border-color .15s, box-shadow .15px;}
+  .order.sel{border-color:var(--orange);box-shadow:0 0 0 1px var(--orange),0 4px 18px rgba(242,101,34,.28);}
+  .order.offer{border-style:dashed;}
+  .o-top{display:flex;justify-content:space-between;align-items:baseline;gap:4px;}
+  .o-name{font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .o-pay{font-size:13px;font-weight:800;color:var(--green);margin-right:22px;}
+  .o-fil{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--dim);margin-top:4px;}
+  .o-fil i{width:11px;height:11px;border-radius:50%;border:1px solid rgba(255,255,255,.35);flex:0 0 auto;}
+  .o-fil .g{margin-left:auto;color:#5b6478;font-size:10px;}
+  .o-meta{font-size:10.5px;color:var(--dim);margin-top:4px;display:flex;justify-content:space-between;align-items:center;}
+  .accept{width:100%;margin-top:7px;padding:5px;border-radius:8px;border:none;background:var(--green);color:#0a0d13;font-size:11px;font-weight:800;letter-spacing:1px;}
+  .accept:disabled{background:#2a3143;color:#5b6478;}
+  .brim{font-size:9.5px;font-weight:800;letter-spacing:1px;padding:3px 7px;border-radius:20px;border:1.5px solid #3a4356;
+    background:transparent;color:var(--dim);margin-top:6px;}
+  .brim.on{border-color:var(--orange);color:var(--orange);background:rgba(242,101,34,.12);}
+  .brim.advise{animation:pulse 1s infinite;}
+  .decline{position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:50%;border:1.5px solid #3a4356;
+    background:transparent;color:#5b6478;font-size:10px;font-weight:800;line-height:1;padding:0;}
+  .decline:active{border-color:var(--red);color:var(--red);}
+  .empty{color:#4a5468;font-size:12px;padding:34px 12px;width:100%;text-align:center;}
+  #farmWrap{position:relative;}
+  #farm{display:block;width:100%;border-radius:14px;background:linear-gradient(180deg,#0e1220,#0a0d13);border:1.5px solid var(--line);}
+  .hdrbtns{display:flex;gap:6px;}
+  #shopBtn,#speedBtn{font-size:11px;font-weight:800;letter-spacing:1px;color:var(--orange);background:rgba(242,101,34,.1);
+    border:1.5px solid rgba(242,101,34,.5);border-radius:20px;padding:5px 11px;}
+  #speedBtn{color:var(--dim);border-color:#3a4356;background:rgba(35,43,61,.3);}
+  #speedBtn.fast{color:var(--gold);border-color:rgba(255,209,102,.6);background:rgba(255,209,102,.08);}
+  #shopBtn:active,#speedBtn:active{transform:scale(.95);}
+  .overlay{position:fixed;inset:0;background:rgba(4,6,10,.72);display:flex;align-items:flex-end;justify-content:center;z-index:50;}
+  .overlay.hidden{display:none;}
+  .overlay.center{align-items:center;}
+  .overlay.center .sheet{border-radius:18px;border-bottom:1.5px solid var(--line);margin:0 18px;text-align:center;}
+  .sheet{width:100%;max-width:430px;background:#10141f;border:1.5px solid var(--line);border-bottom:none;
+    border-radius:18px 18px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom)) 16px;max-height:78dvh;overflow-y:auto;}
+  .sheet h2{margin:0 0 2px 0;font-size:17px;letter-spacing:1px;}
+  .sheet .note{font-size:11px;color:var(--dim);margin-bottom:12px;}
+  .sect{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--dim);margin:12px 0 2px 0;}
+  .uprow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 2px;border-top:1px solid #1b2233;}
+  .uprow .u-name{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;}
+  .uprow .u-desc{font-size:11px;color:var(--dim);margin-top:2px;}
+  .u-dot{width:11px;height:11px;border-radius:50%;border:1px solid rgba(255,255,255,.35);flex:0 0 auto;}
+  .buy{flex:0 0 auto;font-size:11.5px;font-weight:800;color:#0a0d13;background:var(--orange);border:none;border-radius:9px;padding:7px 10px;min-width:52px;}
+  .buy:disabled{background:#2a3143;color:#5b6478;}
+  .buy.owned{background:#1d2b22;color:var(--green);}
+  .buy.prem{background:var(--gold);}
+  .buy.prem:disabled{background:#2a3143;color:#5b6478;}
+  .qtag{font-size:8.5px;font-weight:800;letter-spacing:.5px;padding:1px 6px;border-radius:8px;vertical-align:1px;}
+  .qtag.budget{background:rgba(255,209,102,.14);color:var(--gold);}
+  .qtag.premium{background:rgba(61,220,132,.14);color:var(--green);}
+  .danger{width:100%;margin-top:16px;padding:11px;border-radius:12px;border:1.5px solid rgba(255,82,82,.4);background:transparent;color:#ff8a8a;font-size:12px;font-weight:700;letter-spacing:1px;}
+  .closeBtn{width:100%;margin-top:14px;padding:12px;border-radius:12px;border:1.5px solid var(--line);background:transparent;color:var(--text);font-size:13px;font-weight:700;}
+  .cta{width:100%;padding:13px;border-radius:12px;border:none;background:var(--orange);color:#0a0d13;font-size:15px;font-weight:800;letter-spacing:1px;}
+  .bigearn{font-size:30px;font-weight:800;color:var(--green);margin:8px 0 2px 0;}
+  #toasts{position:fixed;top:calc(10px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:60;
+    display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;width:100%;max-width:430px;}
+  .toast{background:rgba(19,24,36,.95);border:1.5px solid var(--line);color:var(--text);font-size:12.5px;font-weight:600;
+    padding:8px 14px;border-radius:22px;animation:toastIn .25s ease-out;box-shadow:0 6px 20px rgba(0,0,0,.5);}
+  .toast.bad{border-color:var(--red);color:#ffb3b3;}
+  .toast.good{border-color:var(--green);color:#b7f5d4;}
+  .toast.fade{opacity:0;transition:opacity .4s;}
+  @keyframes toastIn{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes pulse{50%{opacity:.45;}}
+  @keyframes pop{50%{transform:scale(1.18);}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">PRINT<span>RUN</span><div class="sub">PRINTYFRESH FARMS</div></div>
+    <div class="hud">
+      <div class="money" id="money">$0</div>
+      <div class="hudrow"><span>SHIPPED <b id="earned" style="color:var(--gold)">$0</b></span></div>
+    </div>
+  </header>
+  <div class="lbl">JOB BOARD <span class="hint">accept what you can actually serve</span></div>
+  <div id="offers" class="tray"></div>
+  <div class="lbl">PRINT QUEUE <span class="hint" id="hint">tap a job, then tap a printer</span></div>
+  <div id="orders" class="tray"></div>
+  <div class="lbl">THE FARM <span class="hdrbtns"><button id="speedBtn">▶ 1x</button><button id="shopBtn">🛠 SUPPLY</button></span></div>
+  <div id="farmWrap"><canvas id="farm"></canvas></div>
+</div>
+<div id="toasts"></div>
+<div id="shopOverlay" class="overlay hidden"><div class="sheet" id="shopSheet"></div></div>
+<div id="loadOverlay" class="overlay hidden"><div class="sheet" id="loadSheet"></div></div>
+<div id="awayOverlay" class="overlay center hidden"><div class="sheet">
+  <h2>WHILE YOU WERE AWAY</h2>
+  <div class="note" id="awayTime"></div>
+  <div class="bigearn" id="awayEarn"></div>
+  <div class="note" id="awayDetail" style="margin-bottom:14px;"></div>
+  <button class="cta" id="awayOk">BACK TO WORK</button>
+</div></div>
+<script>
+/*LOGIC-START*/
+const LOGIC = (() => {
+  const FILAMENTS = [
+    {id:'white', name:'White', hex:'#eef1f4', w:3},
+    {id:'black', name:'Black', hex:'#2a2e37', w:3},
+    {id:'orange', name:'Bears Orange', hex:'#f26522', w:3},
+    {id:'navy', name:'Navy', hex:'#3d5a99', w:2},
+    {id:'red', name:'Red', hex:'#e03131', w:2},
+    {id:'green', name:'Green', hex:'#37b24d', w:2},
+    {id:'purple', name:'Purple', hex:'#9775fa', w:1},
+    {id:'pink', name:'Pink', hex:'#f783ac', w:1},
+  ];
+  // dur in seconds of print time at 1x
+  const ITEMS = [
+    {name:'Benchy', emoji:'🚤', fail:.06, grams:[28,40], dur:[60,95], pay:[10,14]},
+    {name:'Flexi Cat', emoji:'🐱', fail:.10, grams:[35,50], dur:[80,115], pay:[13,18]},
+    {name:'Gridfinity Bin', emoji:'🧰', fail:.08, grams:[45,65], dur:[95,135], pay:[14,19]},
+    {name:'Cookie Cutter', emoji:'🍪', fail:.05, grams:[15,24], dur:[45,70], pay:[8,12]},
+    {name:'Phone Stand', emoji:'📱', fail:.09, grams:[38,55], dur:[90,130], pay:[14,20]},
+    {name:'Planter', emoji:'🪴', fail:.07, grams:[40,60], dur:[85,125], pay:[13,18]},
+    {name:'Flexi Dragon', emoji:'🐉', fail:.16, grams:[55,85], dur:[150,215], pay:[28,38], tricky:true},
+    {name:'Vase', emoji:'🏺', fail:.08, grams:[50,70], dur:[100,145], pay:[16,22]},
+    {name:'Gear Assembly', emoji:'⚙️', fail:.12, grams:[45,70], dur:[105,150], pay:[19,26]},
+    {name:'Piggy Bank', emoji:'🐷', fail:.09, grams:[55,80], dur:[110,155], pay:[18,25]},
+    {name:'Voron Cube', emoji:'🧊', fail:.05, grams:[18,28], dur:[50,80], pay:[8,12]},
+    {name:'Mini Toews', emoji:'🐈', fail:.14, grams:[40,60], dur:[125,175], pay:[24,32], tricky:true},
+  ];
+  const SPOOL_G=500, SPOOL_PRICE={budget:10, premium:15};
+  const BUDGET_PENALTY=0.07, DRYBOX_PENALTY=0.035, BRIM_FAIL=0.35, BRIM_TIME=1.25, NOZ_FAIL=0.55;
+  const LOAD_MS=45000, LOAD_AMS_MS=8000, CLEAN_MS=5000;
+  const OFFER_MAX=5, OFFER_EVERY=75000, JOB_MAX=6;
+  const COST={printer2:150, printer3:300, ams:90, nozzle:70, drybox:120};
+
+  function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+  const R=(s,a,b)=>a+s.rng()*(b-a);
+  const Ri=(s,a,b)=>Math.floor(R(s,a,b+1));
+  function pickWeighted(s, arr){ let tot=0; for(const x of arr) tot+=x.w||1; let r=s.rng()*tot; for(const x of arr){ r-=x.w||1; if(r<=0) return x;} return arr[arr.length-1]; }
+  function newPrinter(name, star){ return {name, star:!!star, ams:false, nozzle:0, spool:null, phase:'idle', job:null, cleanT:0, loadT:0, loadTMax:1, messColor:null}; }
+  function newGame(seed){
+    const rng = mulberry32((seed>>>0)||1);
+    const s = { v:2, rng, t:0, money:90, earned:0, printed:0, failed:0, speed:1, drybox:false,
+      spools:[], nextSpoolId:1, printers:[ newPrinter('PrintyFresh', true) ],
+      offers:[], jobs:[], nextOrderId:1, offerIn:20000 };
+    s.printers[0].spool = {id:s.nextSpoolId++, color:'white', q:'premium', grams:SPOOL_G};
+    s.spools.push({id:s.nextSpoolId++, color:'orange', q:'budget', grams:SPOOL_G});
+    while(s.offers.length<4) s.offers.push(makeOffer(s));
+    return s;
+  }
+  function makeOffer(s){
+    const item = ITEMS[Ri(s,0,ITEMS.length-1)];
+    const fil = pickWeighted(s, FILAMENTS);
+    const grams = Ri(s,item.grams[0],item.grams[1]);
+    const dur = R(s,item.dur[0],item.dur[1])*1000;
+    const pay = Math.round(R(s,item.pay[0],item.pay[1]));
+    return { id:s.nextOrderId++, item:item.name, emoji:item.emoji, fail:item.fail, tricky:!!item.tricky,
+      color:fil.id, grams, pay, dur, brim:false };
+  }
+  function riskOf(o){ return o.fail<0.08?1:o.fail<0.13?2:3; }
+  function stockOf(s,color){ let g=0; for(const sp of s.spools) if(sp.color===color) g+=sp.grams; return g; }
+  function loadedOf(s,color){ let g=0; for(const p of s.printers) if(p.spool && p.spool.color===color) g+=p.spool.grams; return g; }
+  function acceptOffer(s,id){
+    if(s.jobs.length>=JOB_MAX) return {ok:false, reason:'queue-full'};
+    const ix=s.offers.findIndex(o=>o.id===id); if(ix<0) return {ok:false, reason:'no-offer'};
+    s.jobs.push(s.offers.splice(ix,1)[0]); return {ok:true};
+  }
+  function declineOffer(s,id){ const ix=s.offers.findIndex(o=>o.id===id); if(ix<0) return false; s.offers.splice(ix,1); return true; }
+  function cancelJob(s,id){ const ix=s.jobs.findIndex(o=>o.id===id); if(ix<0) return 0;
+    const j=s.jobs.splice(ix,1)[0]; const fee=Math.min(s.money, Math.ceil(j.pay*0.2)); s.money-=fee; return fee; }
+  function toggleBrim(s,id){ const o=s.jobs.find(o=>o.id===id)||s.offers.find(o=>o.id===id); if(!o) return false; o.brim=!o.brim; return true; }
+  function effFail(s, job, spool, p){
+    const pen = spool.q==='budget' ? (s.drybox?DRYBOX_PENALTY:BUDGET_PENALTY) : 0;
+    return Math.min(0.5, (job.fail + pen) * (job.brim?BRIM_FAIL:1) * (p.nozzle?NOZ_FAIL:1));
+  }
+  function pickSpool(s, color, risky){
+    const c = s.spools.filter(sp=>sp.color===color && sp.grams>0);
+    if(!c.length) return null;
+    const pref = risky ? 'premium' : 'budget';
+    const ok = c.filter(sp=>sp.q===pref);
+    return (ok.length?ok:c).sort((a,b)=>b.grams-a.grams)[0];
+  }
+  function assign(s, jobId, pi){
+    const p = s.printers[pi]; if(!p) return {ok:false, reason:'no-printer'};
+    if(p.phase!=='idle') return {ok:false, reason:'busy'};
+    const ix = s.jobs.findIndex(o=>o.id===jobId); if(ix<0) return {ok:false, reason:'no-job'};
+    const j = s.jobs[ix];
+    let loadMs = 0;
+    if(p.spool && p.spool.color===j.color){
+      if(p.spool.grams < j.grams) return {ok:false, reason:'low-filament', color:j.color, have:p.spool.grams, need:j.grams};
+    } else {
+      let chosen = pickSpool(s, j.color, j.fail>=0.12);
+      if(!chosen) return {ok:false, reason:'no-filament', color:j.color};
+      if(chosen.grams < j.grams){
+        const better = s.spools.filter(x=>x.color===j.color && x.grams>=j.grams).sort((a,b)=>b.grams-a.grams)[0];
+        if(!better) return {ok:false, reason:'low-filament', color:j.color, have:stockOf(s,j.color), need:j.grams};
+        chosen = better;
+      }
+      if(p.spool && p.spool.grams>0) s.spools.push(p.spool);
+      const six = s.spools.indexOf(chosen); s.spools.splice(six,1);
+      p.spool = chosen;
+      loadMs = p.ams?LOAD_AMS_MS:LOAD_MS;
+    }
+    const risk = effFail(s, j, p.spool, p);
+    let failAt = null; if(s.rng() < risk) failAt = 0.03 + s.rng()*0.4;
+    p.spool.grams -= j.grams;
+    const dur = j.dur * (j.brim?BRIM_TIME:1);
+    s.jobs.splice(ix,1);
+    p.job = { order:j, phase: loadMs>0?'loading':'print', t:0, loadMs, dur, failAt };
+    p.phase = loadMs>0?'loading':'print';
+    return {ok:true, loadMs, risk, dur, failAt};
+  }
+  function manualLoad(s, pi, spoolId){
+    const p = s.printers[pi]; if(!p || p.phase!=='idle') return false;
+    const six = s.spools.findIndex(sp=>sp.id===spoolId); if(six<0) return false;
+    const chosen = s.spools.splice(six,1)[0];
+    if(p.spool && p.spool.grams>0) s.spools.push(p.spool);
+    p.spool = chosen;
+    p.phase='loading'; p.job=null; p.loadTMax = p.ams?LOAD_AMS_MS:LOAD_MS; p.loadT = p.loadTMax;
+    return true;
+  }
+  function clean(s, pi){ const p=s.printers[pi]; if(!p||p.phase!=='spaghetti') return false; p.phase='cleaning'; p.cleanT=CLEAN_MS; p.job=null; return true; }
+  function buySpool(s, color, q){
+    const cost = SPOOL_PRICE[q]; if(!cost || !FILAMENTS.find(f=>f.id===color)) return false;
+    if(s.money<cost) return false;
+    s.money-=cost; s.spools.push({id:s.nextSpoolId++, color, q, grams:SPOOL_G}); return true;
+  }
+  function buy(s, what){
+    if(what==='drybox'){ if(s.drybox||s.money<COST.drybox) return false; s.money-=COST.drybox; s.drybox=true; return true; }
+    if(what==='printer2'||what==='printer3'){
+      const n = what==='printer2'?2:3;
+      if(s.printers.length>=n||s.money<COST[what]) return false;
+      s.money-=COST[what]; s.printers.push(newPrinter('PrintyFresh '+n,false)); return true;
+    }
+    return false;
+  }
+  function buyFor(s, pi, what){
+    const p=s.printers[pi]; if(!p) return false;
+    const cost=COST[what]; if(!cost||s.money<cost) return false;
+    if(what==='ams' && !p.ams){ s.money-=cost; p.ams=true; return true; }
+    if(what==='nozzle' && !p.nozzle){ s.money-=cost; p.nozzle=1; return true; }
+    return false;
+  }
+  function setSpeed(s,x){ s.speed = x===4?4:1; return s.speed; }
+  function tick(s, dt){
+    const events=[];
+    s.t += dt;
+    s.offerIn -= dt;
+    while(s.offerIn<=0){
+      if(s.offers.length<OFFER_MAX){ const o=makeOffer(s); s.offers.push(o); events.push({type:'offer', offer:o}); }
+      s.offerIn += OFFER_EVERY;
+    }
+    const pdt = dt * (s.speed||1);
+    s.printers.forEach((p,pi)=>{
+      if(p.phase==='loading' && p.job){
+        p.job.t+=pdt;
+        if(p.job.t>=p.job.loadMs){ p.job.phase='print'; p.phase='print'; p.job.t=0; events.push({type:'loaded', printer:pi, color:p.spool.color}); }
+      } else if(p.phase==='loading' && !p.job){
+        p.loadT-=pdt; if(p.loadT<=0){ p.phase='idle'; events.push({type:'loaded', printer:pi, color:p.spool?p.spool.color:null}); }
+      } else if(p.phase==='print' && p.job){
+        p.job.t+=pdt;
+        const frac=p.job.t/p.job.dur;
+        if(p.job.failAt!=null && frac>=p.job.failAt){
+          p.phase='spaghetti'; p.messColor=p.job.order.color; s.failed++;
+          events.push({type:'spaghetti', printer:pi, order:p.job.order});
+          p.job=null;
+        } else if(frac>=1){
+          const o=p.job.order; s.money+=o.pay; s.earned+=o.pay; s.printed++;
+          p.job=null; p.phase='idle'; events.push({type:'complete', printer:pi, order:o});
+        }
+      } else if(p.phase==='cleaning'){
+        p.cleanT-=pdt; if(p.cleanT<=0){ p.phase='idle'; p.messColor=null; events.push({type:'cleaned', printer:pi}); }
+      }
+    });
+    return events;
+  }
+  function snapshot(s){
+    const c = JSON.parse(JSON.stringify(s, (k,v)=>k==='rng'?undefined:v));
+    c.v=2; return c;
+  }
+  function revive(obj, seed){
+    if(!obj || obj.v!==2 || !Array.isArray(obj.printers) || !Array.isArray(obj.spools)) return null;
+    obj.rng = mulberry32(((seed||Date.now())>>>0)||1);
+    if(typeof obj.speed!=='number') obj.speed=1;
+    return obj;
+  }
+  return {FILAMENTS, ITEMS, SPOOL_G, SPOOL_PRICE, BUDGET_PENALTY, DRYBOX_PENALTY, BRIM_FAIL, BRIM_TIME, NOZ_FAIL,
+    LOAD_MS, LOAD_AMS_MS, CLEAN_MS, OFFER_MAX, OFFER_EVERY, JOB_MAX, COST,
+    mulberry32, newPrinter, newGame, makeOffer, riskOf, stockOf, loadedOf, acceptOffer, declineOffer, cancelJob,
+    toggleBrim, effFail, assign, manualLoad, clean, buySpool, buy, buyFor, setSpeed, tick, snapshot, revive};
+})();
+/*LOGIC-END*/
+</script>
+<script>
+(() => {
+const L = LOGIC;
+const SAVE_KEY='printrun.tycoon.v2';
+const $=id=>document.getElementById(id);
+const filById=id=>L.FILAMENTS.find(f=>f.id===id);
+const fmtT=ms=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
+const fmtAway=ms=>{const m=Math.round(ms/60000); if(m<60) return m+' min'; const h=Math.floor(m/60); return h+'h '+(m%60)+'m';};
+
+let state, selectedId=null, loadPrinterIx=null;
+let orderRefs={}, PAUSED=false, persistTimer=0;
+
+/* ---------- persistence ---------- */
+function persist(){
+  try{ const s=L.snapshot(state); s.savedAt=Date.now(); localStorage.setItem(SAVE_KEY, JSON.stringify(s)); }catch(e){}
+}
+function persistSoon(){ if(persistTimer) return; persistTimer=setTimeout(()=>{ persistTimer=0; persist(); },800); }
+function restore(){
+  try{ const raw=localStorage.getItem(SAVE_KEY); if(!raw) return null; return JSON.parse(raw); }catch(e){ return null; }
+}
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) persist(); });
+window.addEventListener('pagehide',persist);
+
+/* ---------- sound ---------- */
+let AC=null;
+function ac(){ if(!AC){ try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){} } if(AC&&AC.state==='suspended')AC.resume(); return AC; }
+function tone(f,d,type,g,delay){ const c=ac(); if(!c)return;
+  const o=c.createOscillator(), v=c.createGain(); o.type=type||'sine'; o.frequency.value=f;
+  const t0=c.currentTime+(delay||0);
+  v.gain.setValueAtTime(g||0.06,t0); v.gain.exponentialRampToValueAtTime(0.0001,t0+d);
+  o.connect(v).connect(c.destination); o.start(t0); o.stop(t0+d+0.03); }
+const sfx={
+  tap(){tone(420,.05,'triangle',.04);},
+  assign(){tone(500,.07,'square',.05);tone(700,.06,'square',.04,.06);},
+  spawn(){tone(340,.05,'sine',.028);},
+  cash(){tone(880,.09,'sine',.07);tone(1318,.16,'sine',.07,.09);},
+  fail(){tone(200,.22,'sawtooth',.08);tone(95,.4,'sawtooth',.08,.1);},
+  buy(){tone(660,.08,'triangle',.06);tone(990,.12,'triangle',.06,.07);},
+  swap(){tone(260,.05,'square',.04);tone(390,.05,'square',.04,.05);}
+};
+document.addEventListener('pointerdown',()=>ac(),{once:true});
+
+/* ---------- toasts ---------- */
+function toast(msg,cls){
+  const el=document.createElement('div'); el.className='toast'+(cls?' '+cls:''); el.textContent=msg;
+  const box=$('toasts'); box.appendChild(el);
+  while(box.children.length>3) box.firstChild.remove();
+  setTimeout(()=>el.classList.add('fade'),2200); setTimeout(()=>el.remove(),2700);
+}
+
+/* ---------- canvas farm ---------- */
+const cv=$('farm'), ctx=cv.getContext('2d');
+let CW=0, CH=208, DPR=1, printerRects=[];
+function sizeCanvas(){
+  DPR=Math.min(2,window.devicePixelRatio||1);
+  const w=cv.clientWidth||380;
+  const top=cv.getBoundingClientRect().top||430;
+  CH = Math.max(190, Math.min(430, (window.innerHeight||700) - top - 16));
+  CW=w;
+  cv.width=w*DPR; cv.height=CH*DPR; cv.style.height=CH+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+
+let particles=[];
+function burst(x,y,color,n){
+  for(let i=0;i<(n||14);i++){
+    const a=Math.random()*Math.PI*2, sp=1+Math.random()*2.4;
+    particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-1.2,life:1,color,r:1.5+Math.random()*2});
+  }
+}
+function floatText(x,y,text,color){ particles.push({x,y,vx:0,vy:-0.55,life:1.6,text,color}); }
+function stepParticles(dt){
+  const k=dt/16.7;
+  for(let i=particles.length-1;i>=0;i--){ const p=particles[i];
+    p.x+=p.vx*k; p.y+=p.vy*k; if(!p.text)p.vy+=0.06*k; p.life-=0.022*k;
+    if(p.life<=0) particles.splice(i,1);
+  }
+}
+function drawParticles(){
+  for(const p of particles){ ctx.globalAlpha=Math.min(1,p.life);
+    if(p.text){ ctx.fillStyle=p.color; ctx.font='800 15px -apple-system,sans-serif'; ctx.textAlign='center'; ctx.fillText(p.text,p.x,p.y); }
+    else { ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fill(); }
+  }
+  ctx.globalAlpha=1;
+}
+
+function drawPrinter(p, x, y, w, h, now){
+  const spool=p.spool, fil=spool?filById(spool.color):null;
+  const pad=8, ix=x+pad, iw=w-pad*2;
+  const enclY=y+22, enclH=h-22-40;
+  const armed = selectedId!=null && p.phase==='idle';
+  if(armed){ const a=.35+.25*Math.sin(now/180); ctx.strokeStyle='rgba(242,101,34,'+a.toFixed(2)+')'; ctx.lineWidth=2.5; ctx.setLineDash([6,5]); rr(x+2,y+2,w-4,h-4,12); ctx.stroke(); ctx.setLineDash([]); }
+  ctx.textAlign='left'; ctx.font='800 11px -apple-system,sans-serif'; ctx.fillStyle='#e9ecf2';
+  ctx.fillText((p.star?'⭐ ':'')+p.name, ix, y+13);
+  let bx=ix+ctx.measureText((p.star?'⭐ ':'')+p.name).width+6;
+  ctx.font='700 8px -apple-system,sans-serif';
+  if(p.ams){ ctx.fillStyle='#f26522'; ctx.fillText('AMS',bx,y+13); bx+=22; }
+  if(p.nozzle){ ctx.fillStyle='#3ddc84'; ctx.fillText('NOZ+',bx,y+13); }
+  ctx.fillStyle='rgba(19,24,36,.9)'; rr(ix,enclY,iw,enclH,8); ctx.fill();
+  ctx.strokeStyle='#232b3d'; ctx.lineWidth=1.5; rr(ix,enclY,iw,enclH,8); ctx.stroke();
+  const bedY=enclY+enclH-14, cx=ix+iw/2;
+  const fanSpd = p.phase==='print' ? now/90 : now/600;
+  ctx.strokeStyle='#3a4356'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.arc(ix+16,enclY+15,8,0,7); ctx.stroke();
+  for(let k=0;k<3;k++){ const a0=fanSpd+k*2.1; ctx.beginPath(); ctx.moveTo(ix+16,enclY+15);
+    ctx.arc(ix+16,enclY+15,6,a0,a0+0.9); ctx.closePath();
+    ctx.fillStyle='rgba(90,100,120,'+(p.phase==='print'?'0.8':'0.35')+')'; ctx.fill(); }
+  // spool (top-right)
+  const spX=ix+iw-15, spY=enclY+13;
+  const spoolColor = (p.phase==='loading'&&p.job) ? filById(p.job.order.color) : fil;
+  if(spoolColor){
+    ctx.fillStyle=spoolColor.hex; ctx.beginPath(); ctx.arc(spX,spY,9,0,7); ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=1; ctx.stroke();
+    ctx.fillStyle='#0a0d13'; ctx.beginPath(); ctx.arc(spX,spY,3,0,7); ctx.fill();
+  } else {
+    ctx.strokeStyle='#3a4356'; ctx.lineWidth=1.5; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.arc(spX,spY,9,0,7); ctx.stroke(); ctx.setLineDash([]);
+  }
+  if(p.phase==='loading'){ const a=.4+.4*Math.sin(now/130); ctx.strokeStyle='rgba(242,101,34,'+a+')'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(spX,spY,12,0,7); ctx.stroke(); }
+  if(p.phase==='print'){
+    ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.lineWidth=1;
+    for(let k=0;k<3;k++){ const a0=now/300+k*2.1; ctx.beginPath(); ctx.arc(spX,spY,6,a0,a0+1); ctx.stroke(); }
+  }
+  if(p.phase==='spaghetti'){
+    const mc=filById(p.messColor||'orange');
+    ctx.strokeStyle=mc.hex; ctx.lineWidth=2; ctx.lineCap='round';
+    const seed=(p.name.length*7+3);
+    for(let s=0;s<4;s++){
+      ctx.beginPath();
+      let px=cx-26+((seed*(s+3))%20), py=bedY-2;
+      ctx.moveTo(px,py);
+      for(let k=0;k<6;k++){ px+=((seed*(k+2)+s*13)%23)-11+Math.sin(k*2+s)*8; py-=3+((seed+k*7+s)%9); ctx.lineTo(px,py); }
+      ctx.stroke();
+    }
+    ctx.font='22px -apple-system,sans-serif'; ctx.textAlign='center'; ctx.fillText('🍝',cx,enclY+30);
+    ctx.font='800 10px -apple-system,sans-serif'; ctx.fillStyle='#ff5252';
+    const a=.5+.5*Math.sin(now/150); ctx.globalAlpha=.6+.4*a;
+    ctx.fillText('SPAGHETTI!',cx,enclY+enclH-4); ctx.globalAlpha=1;
+  } else if(p.phase==='cleaning'){
+    const frac=1-p.cleanT/L.CLEAN_MS;
+    ctx.strokeStyle='#3ddc84'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(cx,bedY-24,13,-Math.PI/2,-Math.PI/2+frac*Math.PI*2); ctx.stroke();
+    ctx.font='14px -apple-system,sans-serif'; ctx.textAlign='center'; ctx.fillText('🧽',cx,bedY-19);
+  } else if(p.job && p.phase==='print'){
+    const frac=Math.min(1,p.job.t/p.job.dur);
+    const col=filById(p.job.order.color);
+    const layers=Math.floor(frac*11), maxW=Math.min(44,iw*.42);
+    ctx.fillStyle=col.hex;
+    for(let li=0;li<layers;li++){
+      const lw=maxW*(0.72+0.28*Math.sin(li*1.7+p.job.order.id));
+      ctx.fillRect(cx-lw/2, bedY-3-li*3.4, lw, 3);
+    }
+    const objH=layers*3.4;
+    const gy=Math.max(enclY+10, bedY-6-objH-9);
+    ctx.strokeStyle='#3a4356'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(ix+8,enclY+8); ctx.lineTo(ix+8,bedY+2); ctx.moveTo(ix+iw-8,enclY+8); ctx.lineTo(ix+iw-8,bedY+2); ctx.stroke();
+    ctx.strokeStyle='#5b6478'; ctx.beginPath(); ctx.moveTo(ix+6,gy); ctx.lineTo(ix+iw-6,gy); ctx.stroke();
+    const ex=cx+Math.sin(now/260+p.job.order.id)*Math.max(6,(iw/2-22));
+    ctx.fillStyle='#39415a'; rr(ex-8,gy-5,16,10,2); ctx.fill();
+    ctx.fillStyle='#f26522'; ctx.beginPath(); ctx.moveTo(ex-3,gy+5); ctx.lineTo(ex+3,gy+5); ctx.lineTo(ex,gy+11); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='rgba(242,101,34,.85)'; ctx.beginPath(); ctx.arc(ex,gy+12,1.6+Math.sin(now/90)*0.7,0,7); ctx.fill();
+    if(frac>0.97){ ctx.font='15px -apple-system,sans-serif'; ctx.textAlign='center'; ctx.fillText(p.job.order.emoji,cx,bedY-objH-6); }
+  } else if(p.phase==='loading'){
+    const frac = p.job ? Math.min(1,p.job.t/p.job.loadMs) : (1-p.loadT/p.loadTMax);
+    ctx.textAlign='center'; ctx.font='800 10px -apple-system,sans-serif'; ctx.fillStyle='#8b93a7';
+    ctx.fillText('LOADING FILAMENT',cx,bedY-30);
+    ctx.fillStyle='#232b3d'; rr(cx-30,bedY-24,60,5,2.5); ctx.fill();
+    ctx.fillStyle='#f26522'; rr(cx-30,bedY-24,60*Math.max(0,frac),5,2.5); ctx.fill();
+    ctx.strokeStyle='#3a4356'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(ix+8,enclY+8); ctx.lineTo(ix+8,bedY+2); ctx.moveTo(ix+iw-8,enclY+8); ctx.lineTo(ix+iw-8,bedY+2); ctx.stroke();
+    ctx.strokeStyle='#5b6478'; ctx.beginPath(); ctx.moveTo(ix+6,enclY+12); ctx.lineTo(ix+iw-6,enclY+12); ctx.stroke();
+  } else {
+    ctx.strokeStyle='#2a3143'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(ix+8,enclY+8); ctx.lineTo(ix+8,bedY+2); ctx.moveTo(ix+iw-8,enclY+8); ctx.lineTo(ix+iw-8,bedY+2); ctx.stroke();
+    ctx.strokeStyle='#39415a'; ctx.beginPath(); ctx.moveTo(ix+6,enclY+12); ctx.lineTo(ix+iw-6,enclY+12); ctx.stroke();
+    ctx.textAlign='center'; ctx.font='700 9.5px -apple-system,sans-serif'; ctx.fillStyle='#4a5468';
+    ctx.fillText(armed?'TAP TO ASSIGN':(fil?'TAP: LOAD / SWAP SPOOL':'NO FILAMENT - TAP TO LOAD'),cx,bedY-26);
+  }
+  ctx.strokeStyle='#39415a'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(ix+10,bedY); ctx.lineTo(ix+iw-10,bedY); ctx.stroke();
+  // filament chip (loaded spool)
+  ctx.textAlign='left'; ctx.font='600 9px -apple-system,sans-serif';
+  if(fil){
+    ctx.fillStyle=fil.hex; ctx.beginPath(); ctx.arc(ix+5,y+h-27,4,0,7); ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.3)'; ctx.lineWidth=1; ctx.stroke();
+    ctx.fillStyle='#8b93a7';
+    ctx.fillText(fil.name+(spool.q==='budget'?' (B)':' (P)')+' · '+Math.round(spool.grams)+'g',ix+13,y+h-23);
+  } else {
+    ctx.fillStyle='#4a5468'; ctx.fillText('no spool loaded',ix+13,y+h-23);
+  }
+  // status + progress (bottom strip)
+  const statY=y+h-23;
+  let frac=0, stat='IDLE', statCol='#4a5468';
+  if(p.phase==='print'&&p.job){ frac=Math.min(1,p.job.t/p.job.dur); stat=Math.floor(frac*100)+'% · '+fmtT((p.job.dur-p.job.t)/(state.speed||1)); statCol=filById(p.job.order.color).hex; }
+  else if(p.phase==='loading'){ frac = p.job ? Math.min(1,p.job.t/p.job.loadMs) : (1-p.loadT/p.loadTMax); stat='loading'; statCol='#f26522'; }
+  else if(p.phase==='cleaning'){ frac=1-p.cleanT/L.CLEAN_MS; stat='cleaning'; statCol='#3ddc84'; }
+  else if(p.phase==='spaghetti'){ frac=1; stat='tap to clean'; statCol='#ff5252'; }
+  ctx.fillStyle='#0d1119'; rr(ix,y+h-13,iw,6,3); ctx.fill();
+  if(frac>0){ ctx.fillStyle=statCol; rr(ix,y+h-13,Math.max(6,iw*frac),6,3); ctx.fill(); }
+  ctx.textAlign='right'; ctx.font='700 9.5px -apple-system,sans-serif'; ctx.fillStyle=statCol;
+  ctx.fillText(stat,ix+iw,statY);
+}
+
+function drawFarm(now){
+  ctx.clearRect(0,0,CW,CH);
+  const n=state.printers.length;
+  printerRects=[];
+  const cellW=CW/n;
+  for(let i=0;i<n;i++){
+    const x=i*cellW;
+    printerRects.push({x,y:0,w:cellW,h:CH});
+    drawPrinter(state.printers[i], x, 0, cellW, CH, now);
+  }
+  drawParticles();
+}
+
+/* ---------- cards ---------- */
+function cardHTML(o){
+  const fil=filById(o.color);
+  const risk='🍝'.repeat(L.riskOf(o));
+  return '<div class="o-top"><span class="o-name">'+o.emoji+' '+o.item+'</span><span class="o-pay">$'+o.pay+'</span></div>'+
+    '<div class="o-fil"><i style="background:'+fil.hex+'"></i>'+fil.name+' PLA<span class="g">'+o.grams+'g</span></div>'+
+    '<div class="o-meta"><span>⏱ '+fmtT(o.dur)+'</span><span>'+risk+'</span></div>';
+}
+function buildOffers(){
+  const box=$('offers'); box.innerHTML='';
+  if(!state.offers.length){
+    const d=document.createElement('div'); d.className='empty'; d.textContent='Checking for new orders…'; box.appendChild(d);
+  }
+  for(const o of state.offers){
+    const card=document.createElement('div');
+    card.className='order offer';
+    const stock=L.stockOf(state,o.color)+L.loadedOf(state,o.color);
+    card.innerHTML=cardHTML(o)+
+      '<button class="accept"'+(state.jobs.length>=L.JOB_MAX?' disabled':'')+'>'+(state.jobs.length>=L.JOB_MAX?'QUEUE FULL':'ACCEPT')+'</button>'+
+      '<button class="decline" title="Pass">✕</button>';
+    card.querySelector('.accept').addEventListener('click',e=>{
+      e.stopPropagation();
+      const r=L.acceptOffer(state,o.id);
+      if(r.ok){ sfx.assign(); toast(o.emoji+' '+o.item+' queued'+(stock<o.grams?' - low on '+filById(o.color).name+'!':''), stock<o.grams?'bad':null); buildAll(); }
+    });
+    card.querySelector('.decline').addEventListener('click',e=>{
+      e.stopPropagation(); L.declineOffer(state,o.id); sfx.tap(); buildAll();
+    });
+    box.appendChild(card);
+  }
+}
+function buildJobs(){
+  orderRefs={};
+  const box=$('orders'); box.innerHTML='';
+  if(!state.jobs.length){
+    const d=document.createElement('div'); d.className='empty'; d.textContent='Queue is empty - accept orders from the board'; box.appendChild(d);
+  }
+  for(const o of state.jobs){
+    const card=document.createElement('div');
+    card.className='order'+(o.id===selectedId?' sel':'');
+    const stock=L.stockOf(state,o.color)+L.loadedOf(state,o.color);
+    card.innerHTML=cardHTML(o)+
+      '<div class="o-meta"><span>'+(stock>=o.grams?'✅ filament stocked':'⚠️ need '+filById(o.color).name)+'</span></div>'+
+      '<button class="brim'+(o.brim?' on':'')+(o.tricky&&!o.brim?' advise':'')+'">'+(o.brim?'BRIM ON':'+ BRIM')+'</button>'+
+      '<button class="decline" title="Cancel (fee)">✕</button>';
+    card.addEventListener('click',()=>{
+      selectedId=(selectedId===o.id)?null:o.id; sfx.tap(); buildJobs();
+    });
+    card.querySelector('.decline').addEventListener('click',e=>{
+      e.stopPropagation(); if(selectedId===o.id) selectedId=null;
+      const fee=L.cancelJob(state,o.id); sfx.tap();
+      toast('Cancelled '+(o.emoji+' '+o.item)+(fee?' - $'+fee+' fee':''),'bad'); buildAll();
+    });
+    card.querySelector('.brim').addEventListener('click',e=>{
+      e.stopPropagation(); L.toggleBrim(state,o.id); sfx.tap(); buildJobs();
+    });
+    box.appendChild(card);
+  }
+}
+function buildAll(){ buildOffers(); buildJobs(); updateHUD(); persistSoon(); }
+
+/* ---------- HUD ---------- */
+function updateHUD(){
+  $('money').textContent='$'+state.money;
+  $('earned').textContent='$'+state.earned;
+  $('speedBtn').textContent=state.speed===4?'⏩ 4x':'▶ 1x';
+  $('speedBtn').classList.toggle('fast',state.speed===4);
+}
+$('speedBtn').addEventListener('click',()=>{ L.setSpeed(state, state.speed===4?1:4); sfx.tap(); updateHUD(); persistSoon(); });
+
+/* ---------- shop ---------- */
+function openShop(){ renderShop(); $('shopOverlay').classList.remove('hidden'); }
+function closeShop(){ $('shopOverlay').classList.add('hidden'); }
+function renderShop(){
+  const s=$('shopSheet');
+  let h='<h2>🛠 SUPPLY & UPGRADES</h2><div class="note">Spools are 500g. Budget prints fine but risks more spaghetti. The clock never stops, boss.</div>';
+  h+='<div class="sect">FILAMENT</div>';
+  for(const f of L.FILAMENTS){
+    const stock=L.stockOf(state,f.id)+L.loadedOf(state,f.id);
+    h+='<div class="uprow"><div><div class="u-name"><span class="u-dot" style="background:'+f.hex+'"></span>'+f.name+'</div>'
+      +'<div class="u-desc">'+Math.round(stock)+'g in stock</div></div>'
+      +'<div style="display:flex;gap:6px;">'
+      +'<button class="buy" data-spool="'+f.id+'" data-q="budget" '+(state.money<L.SPOOL_PRICE.budget?'disabled':'')+'>B $'+L.SPOOL_PRICE.budget+'</button>'
+      +'<button class="buy prem" data-spool="'+f.id+'" data-q="premium" '+(state.money<L.SPOOL_PRICE.premium?'disabled':'')+'>P $'+L.SPOOL_PRICE.premium+'</button>'
+      +'</div></div>';
+  }
+  h+='<div class="sect">UPGRADES</div>';
+  state.printers.forEach((p,pi)=>{
+    h+='<div class="uprow"><div><div class="u-name">'+(p.star?'⭐ ':'')+p.name+'</div><div class="u-desc">'+(p.spool?filById(p.spool.color).name+' '+(p.spool.q==='budget'?'budget':'premium')+' · '+Math.round(p.spool.grams)+'g':'no spool')+'</div></div><div style="display:flex;gap:6px;">'
+      +'<button class="buy '+(p.ams?'owned':'')+'" data-buy="ams" data-p="'+pi+'" '+(p.ams||state.money<L.COST.ams?'disabled':'')+'>'+(p.ams?'AMS ✓':'AMS $'+L.COST.ams)+'</button>'
+      +'<button class="buy '+(p.nozzle?'owned':'')+'" data-buy="nozzle" data-p="'+pi+'" '+(p.nozzle||state.money<L.COST.nozzle?'disabled':'')+'>'+(p.nozzle?'NOZ ✓':'NOZ+ $'+L.COST.nozzle)+'</button>'
+      +'</div></div>';
+  });
+  if(!state.drybox) h+='<div class="uprow"><div><div class="u-name">🗄 Filament Dry Box</div><div class="u-desc">Budget spools get half the spaghetti penalty</div></div><button class="buy" data-buy="drybox" '+(state.money<L.COST.drybox?'disabled':'')+'>$'+L.COST.drybox+'</button></div>';
+  if(state.printers.length<2) h+='<div class="uprow"><div><div class="u-name">PrintyFresh 2</div><div class="u-desc">A second workhorse joins the farm</div></div><button class="buy" data-buy="printer2" '+(state.money<L.COST.printer2?'disabled':'')+'>$'+L.COST.printer2+'</button></div>';
+  else if(state.printers.length<3) h+='<div class="uprow"><div><div class="u-name">PrintyFresh 3</div><div class="u-desc">Three printers, zero mercy</div></div><button class="buy" data-buy="printer3" '+(state.money<L.COST.printer3?'disabled':'')+'>$'+L.COST.printer3+'</button></div>';
+  h+='<div class="uprow" style="border:none;padding-top:6px;"><div class="u-desc">AMS = 8s spool swaps (vs 45s hand swap). NOZ+ = hardened nozzle, nearly halves spaghetti risk on that printer. Budget filament adds 🍝 risk; premium adds none.</div></div>';
+  h+='<button class="closeBtn" id="closeShop">BACK TO THE FARM</button>';
+  h+='<button class="danger" id="resetFarm">RESET FARM (tap twice - wipes everything)</button>';
+  s.innerHTML=h;
+  s.querySelector('#closeShop').addEventListener('click',closeShop);
+  let armed=false;
+  s.querySelector('#resetFarm').addEventListener('click',e=>{
+    if(!armed){ armed=true; e.target.textContent='REALLY WIPE THE FARM? TAP AGAIN'; return; }
+    localStorage.removeItem(SAVE_KEY); state=L.newGame((Date.now()%2147483647)); selectedId=null;
+    persist(); closeShop(); buildAll(); sizeCanvas(); toast('Fresh farm. PrintyFresh lives again.');
+  });
+  s.querySelectorAll('[data-spool]').forEach(b=>b.addEventListener('click',()=>{
+    if(L.buySpool(state,b.getAttribute('data-spool'),b.getAttribute('data-q'))){
+      sfx.buy(); const f=filById(b.getAttribute('data-spool'));
+      toast(f.name+' PLA ('+b.getAttribute('data-q')+') in stock','good'); renderShop(); buildAll();
+    }
+  }));
+  s.querySelectorAll('[data-buy]').forEach(b=>b.addEventListener('click',()=>{
+    const what=b.getAttribute('data-buy'), pi=+(b.getAttribute('data-p')||-1);
+    let ok=false;
+    if(what==='printer2'||what==='printer3'||what==='drybox'){ ok=L.buy(state,what); if(ok&&what!=='drybox') sizeCanvas(); }
+    else ok=L.buyFor(state,pi,what);
+    if(ok){ sfx.buy(); toast(what==='ams'?'AMS installed - 8s swaps':what==='nozzle'?'Hardened nozzle fitted':what==='drybox'?'Dry box installed - budget filament is safer now':'New printer online!','good'); renderShop(); buildAll(); }
+  }));
+}
+$('shopBtn').addEventListener('click',()=>{ sfx.tap(); openShop(); });
+$('shopOverlay').addEventListener('click',e=>{ if(e.target===$('shopOverlay')) closeShop(); });
+
+/* ---------- load spool sheet ---------- */
+function openLoad(pi){
+  loadPrinterIx=pi; renderLoad(); $('loadOverlay').classList.remove('hidden');
+}
+function closeLoad(){ $('loadOverlay').classList.add('hidden'); loadPrinterIx=null; }
+function renderLoad(){
+  const s=$('loadSheet'), p=state.printers[loadPrinterIx];
+  let h='<h2>🧵 '+((p.star?'⭐ ':'')+p.name)+'</h2>';
+  h+='<div class="note">'+(p.spool?('Loaded: '+filById(p.spool.color).name+' <span class="qtag '+p.spool.q+'">'+p.spool.q.toUpperCase()+'</span> · '+Math.round(p.spool.grams)+'g left'):'Nothing loaded.')+' Swap takes '+(p.ams?'8s (AMS)':'45s')+'.</div>';
+  if(!state.spools.length) h+='<div class="note">No spools in stock - hit SUPPLY to buy filament.</div>';
+  state.spools.forEach(sp=>{
+    const f=filById(sp.color);
+    h+='<div class="uprow"><div><div class="u-name"><span class="u-dot" style="background:'+f.hex+'"></span>'+f.name+' <span class="qtag '+sp.q+'">'+sp.q.toUpperCase()+'</span></div>'
+      +'<div class="u-desc">'+Math.round(sp.grams)+'g on the spool</div></div>'
+      +'<button class="buy" data-load="'+sp.id+'">LOAD</button></div>';
+  });
+  h+='<button class="closeBtn" id="closeLoad">DONE</button>';
+  s.innerHTML=h;
+  s.querySelector('#closeLoad').addEventListener('click',closeLoad);
+  s.querySelectorAll('[data-load]').forEach(b=>b.addEventListener('click',()=>{
+    const id=+b.getAttribute('data-load');
+    if(L.manualLoad(state,loadPrinterIx,id)){ sfx.swap(); toast('Loading '+filById(state.printers[loadPrinterIx].spool.color).name+'…'); closeLoad(); updateHUD(); persistSoon(); }
+  }));
+}
+$('loadOverlay').addEventListener('click',e=>{ if(e.target===$('loadOverlay')) closeLoad(); });
+
+/* ---------- away sheet ---------- */
+$('awayOk').addEventListener('click',()=>{ sfx.tap(); $('awayOverlay').classList.add('hidden'); });
+
+/* ---------- events ---------- */
+function printerCenter(pi){ const r=printerRects[pi]; return r?{x:r.x+r.w/2,y:r.y+r.h/2}:{x:CW/2,y:CH/2}; }
+function handleEvents(evs, silent){
+  let changed=false;
+  for(const e of evs){
+    if(e.type==='offer'){ if(!silent){ sfx.spawn(); } changed=true; }
+    else if(e.type==='loaded'){ if(!silent){ sfx.swap(); toast('Filament loaded: '+filById(e.color).name); } }
+    else if(e.type==='complete'){ changed=true;
+      if(!silent){ sfx.cash();
+        const c=printerCenter(e.printer); burst(c.x,c.y-10,filById(e.order.color).hex,16); floatText(c.x,c.y-24,'+$'+e.order.pay,'#3ddc84');
+        $('money').classList.remove('pop'); void $('money').offsetWidth; $('money').classList.add('pop');
+        toast(e.order.emoji+' '+e.order.item+' shipped! +$'+e.order.pay,'good');
+      }
+    }
+    else if(e.type==='spaghetti'){ changed=true;
+      if(!silent){ sfx.fail();
+        const c=printerCenter(e.printer); burst(c.x,c.y,'#ff5252',18);
+        toast('🍝 Spaghetti on '+state.printers[e.printer].name+'! Filament wasted - tap it to clean.','bad');
+      }
+    }
+  }
+  if(changed && !silent){ buildOffers(); buildJobs(); }
+  if(changed) persistSoon();
+}
+
+/* ---------- input ---------- */
+cv.addEventListener('click',e=>{
+  const rect=cv.getBoundingClientRect();
+  const x=(e.clientX-rect.left), y=(e.clientY-rect.top);
+  const pi=printerRects.findIndex(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h);
+  if(pi<0) return;
+  const p=state.printers[pi];
+  if(p.phase==='spaghetti'){ if(L.clean(state,pi)){ sfx.tap(); toast('Scraping the bed…'); persistSoon(); } return; }
+  if(selectedId!=null){
+    if(p.phase!=='idle'){ toast('That printer is busy.','bad'); return; }
+    const r=L.assign(state,selectedId,pi);
+    if(r.ok){ sfx.assign();
+      toast('Printing '+state.printers[pi].job.order.item+' - '+Math.round(r.risk*100)+'% 🍝 risk'+(r.loadMs>0?' · loading filament first ('+Math.round(r.loadMs/1000)+'s)':''));
+      selectedId=null; buildAll();
+    } else if(r.reason==='no-filament'){ toast('No '+filById(r.color).name+' PLA in stock - buy a spool','bad'); openShop(); }
+    else if(r.reason==='low-filament'){ toast('Only '+Math.round(r.have)+'g '+filById(r.color).name+' - need '+r.need+'g','bad'); openShop(); }
+  } else if(p.phase==='idle'){ sfx.tap(); openLoad(pi); }
+});
+
+/* ---------- main loop ---------- */
+let last=0;
+function frame(ts){
+  if(!last) last=ts;
+  const dt=Math.min(120, ts-last); last=ts;
+  if(!PAUSED){ handleEvents(L.tick(state,dt)); updateHUD(); }
+  stepParticles(dt);
+  drawFarm(ts);
+  requestAnimationFrame(frame);
+}
+setInterval(()=>{ if(!document.hidden) persist(); },4000);
+
+/* ---------- boot / offline progress ---------- */
+function boot(){
+  const saved=restore();
+  const demo=(location.hash.match(/demo=(\w+)/)||[])[1];
+  if(saved && !demo){
+    const revived=L.revive(saved,(Date.now()%2147483647));
+    if(revived){
+      state=revived;
+      const away=Date.now()-(saved.savedAt||Date.now());
+      if(away>60000){
+        const realSpeed=state.speed; state.speed=1;
+        const before={money:state.money,printed:state.printed,failed:state.failed};
+        let left=Math.min(away, 16*3600*1000);
+        while(left>0 && !document.hidden){ const step=Math.min(left,5000); L.tick(state,step); left-=step; }
+        state.speed=realSpeed;
+        const made=state.money-before.money, done=state.printed-before.printed, failed=state.failed-before.failed;
+        if(done>0||failed>0){
+          $('awayTime').textContent='You were gone '+fmtAway(away)+'. The farm kept printing.';
+          $('awayEarn').textContent='+$'+made;
+          $('awayDetail').textContent=done+' print'+(done===1?'':'s')+' shipped'+(failed?' · '+failed+' spaghetti 🍝':'')+'.';
+          $('awayOverlay').classList.remove('hidden');
+        }
+      }
+      return;
+    }
+  }
+  state=L.newGame((Date.now()%2147483647));
+  if(demo) setupDemo(demo);
+}
+function setupDemo(demo){
+  if(demo==='mess'){
+    PAUSED=true;
+    state=L.newGame(7);
+    state.t=96000; state.money=74; state.earned=96; state.printed=6; state.failed=2;
+    state.printers.push(L.newPrinter('PrintyFresh 2'));
+    state.printers[0].phase='spaghetti'; state.printers[0].messColor='pink';
+    state.printers[1].phase='cleaning'; state.printers[1].cleanT=2400;
+    state.printers[1].spool={id:9,color:'green',q:'budget',grams:210};
+    state.jobs=[
+      {id:91,item:'Gear Assembly',emoji:'⚙️',fail:.12,tricky:false,color:'navy',grams:52,pay:19,dur:128000,brim:false},
+      {id:92,item:'Piggy Bank',emoji:'🐷',fail:.09,tricky:false,color:'green',grams:61,pay:21,dur:130000,brim:false},
+    ];
+    state.nextOrderId=93;
+  }
+  else if(demo==='mid'||demo==='shop'||demo==='load'){
+    PAUSED=true;
+    state=L.newGame(7);
+    state.t=221000; state.money=128; state.earned=212; state.printed=14; state.failed=1;
+    state.printers.push(L.newPrinter('PrintyFresh 2'));
+    state.printers[0].ams=true;
+    state.printers[0].spool={id:8,color:'orange',q:'premium',grams:340};
+    const o1={id:101,item:'Flexi Dragon',emoji:'🐉',fail:.16,tricky:true,color:'orange',grams:66,pay:26,dur:340000*0.55,brim:true};
+    state.printers[0].job={order:o1,phase:'print',t:210800,loadMs:0,dur:265000,failAt:null};
+    state.printers[0].phase='print';
+    const o2={id:102,item:'Voron Cube',emoji:'🧊',fail:.05,color:'navy',grams:22,pay:11,dur:74000,brim:false};
+    state.printers[1].job={order:o2,phase:'loading',t:3400,loadMs:45000,dur:74000,failAt:null};
+    state.printers[1].phase='loading';
+    state.printers[1].spool={id:9,color:'navy',q:'budget',grams:478};
+    state.spools=[{id:10,color:'white',q:'premium',grams:280},{id:11,color:'pink',q:'budget',grams:500}];
+    state.jobs=[
+      {id:1,item:'Benchy',emoji:'🚤',fail:.06,tricky:false,color:'white',grams:34,pay:12,dur:78000,brim:false},
+      {id:2,item:'Flexi Cat',emoji:'🐱',fail:.10,tricky:false,color:'pink',grams:41,pay:15,dur:94000,brim:false},
+      {id:3,item:'Mini Toews',emoji:'🐈',fail:.14,tricky:true,color:'black',grams:48,pay:25,dur:152000,brim:true},
+    ];
+    state.nextOrderId=103;
+    selectedId=3;
+    if(demo==='shop') openShop();
+    if(demo==='load') openLoad(1);
+  }
+}
+boot();
+buildAll(); updateHUD(); sizeCanvas();
+window.__getState=()=>state;
+window.__persist=persist;
+window.addEventListener('resize',sizeCanvas);
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
