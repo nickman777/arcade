@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Sandcastle - a daily word game</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:linear-gradient(180deg,#2b1a4a 0%,#7a2d5e 30%,#c94b6d 48%,#f07b4f 62%,#f7b267 72%,#f7b267 100%);
+    color:#3a2a18;touch-action:manipulation;user-select:none;-webkit-user-select:none;
+    min-height:100%;overflow-x:hidden;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+  }
+  #app{max-width:480px;margin:0 auto;position:relative;min-height:100vh;display:flex;flex-direction:column;}
+  header{display:flex;align-items:baseline;justify-content:space-between;padding:14px 16px 0;color:#fff8ec;}
+  h1{font-size:24px;margin:0;letter-spacing:1.5px;text-shadow:0 2px 6px rgba(43,26,74,.6);}
+  #meta{text-align:right;font-size:13px;line-height:1.5;text-shadow:0 1px 4px rgba(43,26,74,.6);}
+  #meta b{color:#ffd98a;}
+  #tagline{margin:2px 16px 0;padding-right:104px;font-size:12.5px;font-style:italic;color:#ffe9c9;text-shadow:0 1px 3px rgba(43,26,74,.5);}
+
+  #sun{position:absolute;top:52px;right:36px;width:74px;height:74px;border-radius:50%;
+    background:radial-gradient(circle at 40% 35%,#fff3c4,#ffd166 60%,#ff9e4f);
+    box-shadow:0 0 44px 14px rgba(255,209,102,.55);}
+
+  #scene{position:relative;height:212px;margin-top:6px;}
+  #castle-wrap{position:absolute;left:50%;transform:translateX(-50%);bottom:44px;width:220px;height:130px;}
+  #ocean{position:absolute;left:0;right:0;bottom:0;height:64px;
+    background:linear-gradient(180deg,rgba(64,120,170,.85),rgba(28,64,110,.95));}
+  .waveband{position:absolute;left:0;right:0;height:22px;
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='22' viewBox='0 0 60 22'%3E%3Cpath d='M0 11 Q15 0 30 11 T60 11 V22 H0 Z' fill='%23ffffff' fill-opacity='0.35'/%3E%3C/svg%3E") repeat-x;
+    background-size:60px 22px;animation:drift 7s linear infinite;}
+  .waveband.w1{bottom:52px;}
+  .waveband.w2{bottom:40px;opacity:.6;animation-duration:11s;animation-direction:reverse;}
+  @keyframes drift{from{background-position-x:0}to{background-position-x:60px}}
+  #sand{position:relative;background:linear-gradient(180deg,#e8c98a,#dcb471);min-height:100px;}
+
+  .merlon{transition:opacity .3s;}
+  .merlon.crumble{animation:crumb .8s forwards;}
+  @keyframes crumb{40%{opacity:1}100%{transform:translateY(46px) rotate(24deg);opacity:0;}}
+
+  #level-label{text-align:center;font-size:13px;color:#7a5a2e;margin:10px 0 2px;font-weight:600;letter-spacing:.4px;}
+
+  #card{position:relative;margin:6px 16px 10px;background:rgba(255,251,240,.92);border-radius:18px;
+    padding:14px 12px 16px;box-shadow:0 6px 18px rgba(90,50,20,.25);overflow:hidden;}
+  #card .phase-hint{text-align:center;font-size:13.5px;color:#8a6a3a;margin-bottom:10px;font-style:italic;min-height:18px;}
+
+  .tiles{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;min-height:56px;}
+  .tile{width:46px;height:52px;border-radius:11px;border:none;cursor:pointer;
+    background:linear-gradient(165deg,#ffe9bb,#f0cd85 60%,#ddb266);
+    color:#4a3517;font-size:24px;font-weight:800;font-family:inherit;
+    box-shadow:0 3px 0 rgba(120,80,30,.35),inset 0 1px 0 rgba(255,255,255,.7);
+    display:flex;align-items:center;justify-content:center;touch-action:manipulation;
+    transition:transform .1s,box-shadow .1s;}
+  .tile:active{transform:scale(.92);}
+  .tile.chosen{outline:3px solid #3d8bc4;background:linear-gradient(165deg,#cfe9ff,#9ecdf0);
+    transform:translateY(-6px);}
+  .tile.taken{animation:washaway .9s forwards;}
+  @keyframes washaway{30%{transform:translateY(-14px) rotate(-8deg);opacity:1}
+    100%{transform:translateY(70px) rotate(20deg);opacity:0;}}
+  .tile.in-slot{visibility:hidden;}
+  .tile.hintglow{animation:glow 1s ease-in-out 3;}
+  @keyframes glow{0%,100%{box-shadow:0 3px 0 rgba(120,80,30,.35)}50%{box-shadow:0 0 18px 6px rgba(61,139,196,.8)}}
+
+  #slots{display:flex;gap:8px;justify-content:center;margin-bottom:12px;flex-wrap:wrap;}
+  .slot{width:46px;height:52px;border-radius:11px;border:2px dashed #c9a76a;background:rgba(255,255,255,.5);
+    display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#4a3517;
+    cursor:pointer;touch-action:manipulation;}
+  .slot.filled{border:2px solid #d9b26a;background:linear-gradient(165deg,#fff3d6,#f0cd85);}
+
+  .btnrow{display:flex;gap:8px;justify-content:center;margin-top:12px;}
+  button.act{border:none;border-radius:12px;padding:12px 16px;font-size:15px;font-weight:700;font-family:inherit;
+    background:#e9d9b8;color:#5a431f;cursor:pointer;touch-action:manipulation;}
+  button.act:active{transform:scale(.96);}
+  button.act.primary{background:linear-gradient(160deg,#ffb45e,#f07b4f);color:#fff;
+    box-shadow:0 3px 0 rgba(120,50,20,.4);font-size:16px;padding:12px 22px;}
+  button.act:disabled{opacity:.45;}
+  button.act.small{font-size:13px;padding:9px 12px;}
+
+  #path{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;padding:2px 16px 8px;}
+  .pathword{background:rgba(255,251,240,.85);border-radius:9px;padding:4px 10px;font-size:13px;font-weight:700;color:#6a4d22;}
+  .pathword.current{outline:2px solid #f07b4f;}
+
+  #toolbar{display:flex;gap:8px;justify-content:center;padding:4px 16px 16px;}
+  #howto{margin:0 16px calc(16px + env(safe-area-inset-bottom));font-size:13px;background:rgba(255,251,240,.85);
+    border-radius:12px;padding:10px 14px;color:#6a4d22;}
+  #howto summary{cursor:pointer;font-weight:700;color:#c94b6d;}
+  #howto p{margin:8px 0 0;line-height:1.55;}
+
+  #splash{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:18px;}
+  #splash .water{position:absolute;left:-10%;right:-10%;bottom:-120%;height:130%;
+    background:linear-gradient(180deg,rgba(120,190,235,.75),rgba(40,110,180,.85));
+    border-radius:42% 46% 0 0;transition:bottom 1s ease-in-out;opacity:0;}
+  #splash.go .water{bottom:-10%;opacity:1;}
+
+  #toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);
+    background:#3a2a18;color:#fff8ec;padding:11px 18px;border-radius:12px;font-size:14px;
+    opacity:0;transition:all .25s;pointer-events:none;max-width:86vw;text-align:center;z-index:30;}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  #toast.bad{background:#c0392b;}
+
+  #modal-wrap{position:fixed;inset:0;background:rgba(43,26,74,.65);display:none;align-items:center;justify-content:center;z-index:40;padding:20px;}
+  #modal-wrap.show{display:flex;}
+  #modal{background:linear-gradient(170deg,#fff6e3,#ffe1b3);border-radius:22px;padding:26px 22px;
+    max-width:400px;width:100%;text-align:center;color:#5a431f;box-shadow:0 12px 40px rgba(0,0,0,.4);}
+  #modal h2{margin:0 0 4px;color:#c94b6d;font-size:26px;}
+  #stars{font-size:34px;margin:6px 0 10px;letter-spacing:6px;color:#e8a020;}
+  #stars .off{opacity:.25;}
+  #modal .words{font-size:13.5px;margin:10px 0 14px;line-height:2;font-weight:700;color:#7a5a2e;word-break:break-word;}
+  #share-btn{margin-top:6px;width:100%;}
+  .shake{animation:shake .35s;}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}50%{transform:translateX(7px)}75%{transform:translateX(-4px)}}
+  #checking{animation:pulse 1s infinite;display:inline-block;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="sun"></div>
+  <header>
+    <h1>&#12796; SANDCASTLE</h1>
+    <div id="meta">Day <b id="puzzle-num"></b><br>&#128293; <b id="streak"></b> day streak</div>
+  </header>
+  <p id="tagline">The tide takes one letter at a time. Keep spelling until only the flag is left.</p>
+
+  <div id="scene">
+    <div id="castle-wrap">
+      <svg viewBox="0 0 220 130" width="220" height="130">
+        <ellipse cx="110" cy="122" rx="104" ry="12" fill="#d9b26a"/>
+        <rect x="62" y="66" width="96" height="52" rx="4" fill="#e8c98a" stroke="#c9a76a" stroke-width="2"/>
+        <rect x="44" y="52" width="26" height="66" rx="3" fill="#eed49b" stroke="#c9a76a" stroke-width="2"/>
+        <rect x="150" y="52" width="26" height="66" rx="3" fill="#eed49b" stroke="#c9a76a" stroke-width="2"/>
+        <rect x="96" y="38" width="28" height="80" rx="3" fill="#f2dca8" stroke="#c9a76a" stroke-width="2"/>
+        <g id="merlons" fill="#f2dca8" stroke="#c9a76a" stroke-width="2">
+          <rect class="merlon" id="m0" x="98" y="24" width="7" height="14"/>
+          <rect class="merlon" id="m1" x="46" y="38" width="7" height="14"/>
+          <rect class="merlon" id="m2" x="106.5" y="24" width="7" height="14"/>
+          <rect class="merlon" id="m3" x="167" y="38" width="7" height="14"/>
+          <rect class="merlon" id="m4" x="115" y="24" width="7" height="14"/>
+        </g>
+        <line x1="110" y1="24" x2="110" y2="8" stroke="#8a6a3a" stroke-width="2.5"/>
+        <path d="M110 8 L128 13 L110 18 Z" fill="#c94b6d"/>
+        <path d="M100 118 v-14 a10 10 0 0 1 20 0 v14 Z" fill="#8a6a3a"/>
+        <rect x="52" y="62" width="10" height="12" rx="2" fill="#8a6a3a"/>
+        <rect x="158" y="62" width="10" height="12" rx="2" fill="#8a6a3a"/>
+      </svg>
+    </div>
+    <div id="ocean"></div>
+    <div class="waveband w1"></div>
+    <div class="waveband w2"></div>
+  </div>
+  <div id="sand">
+    <div id="level-label"></div>
+    <div id="card">
+      <div id="splash"><div class="water"></div></div>
+      <div class="phase-hint" id="phase-hint"></div>
+      <div id="play-area"></div>
+      <div class="btnrow" id="action-row"></div>
+    </div>
+    <div id="path"></div>
+    <div id="toolbar">
+      <button class="act small" id="hint-btn">Hint</button>
+      <button class="act small" id="reset-btn">Reset the beach</button>
+    </div>
+    <details id="howto">
+      <summary>How to play</summary>
+      <p>An 8-letter word sits on the beach. Each wave, tap the ONE letter the tide takes, then rearrange what's left into a real word - every tile, no extras. Make it down to a 3-letter word to win the day. Pick the wrong letter to lose and the sand runs out of words. Words are checked live against Wiktionary. &#9733;&#9733;&#9733; finish with no resets.</p>
+    </details>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="modal-wrap"><div id="modal">
+  <h2 id="modal-title"></h2>
+  <div id="stars"></div>
+  <div id="modal-sub"></div>
+  <div class="words" id="modal-words"></div>
+  <button class="act primary" id="share-btn">Share your castle</button>
+  <p id="next-vault" style="font-size:13px;opacity:.75;margin:12px 0 0;"></p>
+</div></div>
+
+<script>
+
+// daily content is scrambled so the page source can't spoil the puzzle
+function _ks(){var s=0x9E3779B9^8675309,k=[];for(var i=0;i<64;i++){s^=s<<13;s>>>=0;s^=s>>>17;s^=s<<5;s>>>=0;k.push(s&255);}return k;}
+function _dx(b){var k=_ks(),s=atob(b),o='';for(var i=0;i<s.length;i++)o+=String.fromCharCode(s.charCodeAt(i)^k[i%64]);return decodeURIComponent(escape(o));}
+
+const SEEDS = eval("(" + _dx("M0VwJCGJwnURqeNeqyyY3BIv6m4PUUGPAml9QbxNeZrjyuwkl5h5yI/u3/G0pYGy5DFCxKG42mPzsEnb4bbtFyELFSN22aoXBdzxdc5i/bhOdPA6KXMvkXd8fFrNKB2syIH6WOCDeMqD+N+FzKX90PM2WdLP0a4Ujd5I0JLTmABPY3dBFKq9AGbXi1ynLZO/GSSEWDQaJqkJMw8ukXMH+PS5kkKTj3HH4Ya6pffu66yRK1nSx8C4dPjeIbmS25gCLRsDI3bZrBMTvOlcxUT632dGi0lHEVyGZG1qKcYjfI3iyp1+68AWvr3doPHKx5Cz/zZK06G43UDOlTfF4ciPBCwGHkMJ2dR1E77tTKsmmr8ZJI1cMnk+mgIVCFyrSnqagMHnTYKLZLnqjduE3aWMippyLaD948cU4KtZ14XWjxZPY3B3NZLCCWa6/lyrK5HdZiTmOiFvL51mdWopxiNvmvOsiU/g5hHSh/7fhL+u9qXzOUGnqrO8YeTeUOPqkOplEzhqIw67uREJvv5bxUT961pv8EZHaT6VZnFqXLkjEfjzqIFAj49kueqN2YTdw4WykVQq1NTVvnaG1Srdh8iPYkRoEVYf2aUvbfGMKJkf579nRplYIW84nAIVD32FaAeEgL+FUIKLZN2OjbbxyseQtP49Xqeqs6524KtO1uG27RYgDgJBfdLfGgS6/i/OT5zKcCSXYEw3W/ReThUpp0V+l+6jhVDg5hbtqcagjb/PkLT+MUPF1bPRFOy4TtaP1I9iRGgTTRS7tRNm14tJrCGQ3RIv7VMhcD7zCR5iT6QjYKKL5+AjvL0MuZTvzJ/Ly565kVQt8+n4x2iGq0jIj8mDCiZofCMMu6oBCLTiL85Pjt17SoVPRxFcmmpwfEvNKBqQ6aiTJOvtedCDjcertIjx180PN6fF2Khg9bxfzeG26jYHI2pffb20BxKv6VqxT/G/Z0aZSCxpKPMJHn1LuVFxi4DB51GShnPN4Ya9g8vHg9CaX1jTw7OgTo3zLb697fBiOx8VRxO/tAFm14x7jQTnwxJQmlgjdDqYdh4DKblUeJzurIwk6+1m0ofp34W/rvan+jlOxaG42nDgqUi56r2JBDhoDXl29NhyOoyWL6cwid1nTYtRRxFbp0pVFVXNQWWL4r+OQovtGrmD/t+E1sOd0JpfX8XIwLx/htUq0oPbmAtPY3dWH7+0dW3c7VqnT4DlGQnqPRtKQfN3fHxHrkFzi4DB4HCopgzF4fjfhdHGlLniXyGnw9qpYei8XrnqvY8LPAYCQX3S3xcPr+laxUT6zHBGhDpMGjWRcR5yc8YOHf/cmvokgJhz35LvyYK/rvGE2RQ326HTr3bgrUjNkr3mYjwOAkMfqqt1bdz4SbAvmMwSL+1aMng6gAIVCFyrUHj4i8qBUYLta+PM9w==") + ")");
+const EPOCH = new Date(2026, 8, 7);
+function daysSinceEpoch(){
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.max(0, Math.round((today - EPOCH) / 86400000));
+}
+const DAY = daysSinceEpoch();
+const SEED = SEEDS[DAY % SEEDS.length];
+const PUZZLE = DAY + 1;
+
+const LS_KEY = 'sandcastle-v1';
+let store;
+try { store = JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch(e){ store = {}; }
+store.days = store.days || {};
+store.streak = store.streak || 0;
+store.lastWin = (store.lastWin === undefined) ? -1 : store.lastWin;
+store.dict = store.dict || {};
+function save(){ try { localStorage.setItem(LS_KEY, JSON.stringify(store)); } catch(e){} }
+
+let dayState = store.days[PUZZLE] || { words: [SEED.w], resets: 0, done: false, stars: 0 };
+store.days[PUZZLE] = dayState;
+
+// ---------- live dictionary (no baked-in wordlists) ----------
+async function dictionaryCheck(word){
+  const key = word.toLowerCase();
+  if (key in store.dict) return { ok: true, valid: store.dict[key] };
+  const sources = [
+    'https://en.wiktionary.org/api/rest_v1/page/definition/',
+    'https://api.dictionaryapi.dev/api/v2/entries/en/'
+  ];
+  for (const base of sources){
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 8000);
+    try {
+      const r = await fetch(base + encodeURIComponent(key), { signal: ctl.signal });
+      clearTimeout(timer);
+      if (r.status === 200){ store.dict[key] = true; save(); return { ok: true, valid: true }; }
+      if (r.status === 404){ store.dict[key] = false; save(); return { ok: true, valid: false }; }
+    } catch(e){ clearTimeout(timer); }
+  }
+  return { ok: false, valid: false };
+}
+
+// ---------- game state ----------
+let words = dayState.words.slice();     // committed chain, last = current word
+let resets = dayState.resets;
+let done = dayState.done;
+let phase = 'choose';                   // 'choose' | 'rebuild'
+let chosenIdx = -1;
+let pool = [];                          // letters left after sacrifice
+let slots = [];                         // pool index or null
+let busy = false;
+
+const $ = id => document.getElementById(id);
+const toastEl = $('toast');
+let toastTimer;
+function toast(msg, bad){
+  toastEl.textContent = msg;
+  toastEl.className = 'show' + (bad ? ' bad' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.className = '', 2400);
+}
+function cur(){ return words[words.length - 1]; }
+
+function shuffle(a){ for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+function renderCastle(){
+  const drops = words.length - 1;   // one merlon crumbles per wave survived
+  for (let i = 0; i < 5; i++){
+    const el = document.getElementById('m' + i);
+    if (!el) continue;
+    if (i < drops && !el.classList.contains('crumble')) el.classList.add('crumble');
+    if (i >= drops) el.classList.remove('crumble');
+  }
+}
+
+function render(){
+  $('puzzle-num').textContent = '#' + PUZZLE;
+  $('streak').textContent = store.streak;
+  const L = cur().length;
+  $('level-label').textContent = done ? 'The beach is quiet again.' :
+    (L === 3 ? 'Last word standing' : L + ' letters on the sand - the tide is coming');
+  renderCastle();
+
+  // path
+  const pw = $('path');
+  pw.innerHTML = '';
+  words.forEach((w, i) => {
+    const s = document.createElement('span');
+    s.className = 'pathword' + (i === words.length - 1 ? ' current' : '');
+    s.textContent = w;
+    pw.appendChild(s);
+  });
+
+  const area = $('play-area');
+  const row = $('action-row');
+  area.innerHTML = '';
+  row.innerHTML = '';
+
+  if (done){
+    $('phase-hint').textContent = 'Day complete - come back tomorrow.';
+    return;
+  }
+
+  if (phase === 'choose'){
+    $('phase-hint').textContent = 'Tap the one letter the tide takes';
+    const t = document.createElement('div');
+    t.className = 'tiles';
+    cur().split('').forEach((ch, i) => {
+      const b = document.createElement('button');
+      b.className = 'tile' + (i === chosenIdx ? ' chosen' : '');
+      b.textContent = ch;
+      b.onclick = () => { chosenIdx = (chosenIdx === i) ? -1 : i; render(); };
+      t.appendChild(b);
+    });
+    area.appendChild(t);
+    const go = document.createElement('button');
+    go.className = 'act primary';
+    go.textContent = '\u{1F30A} Let the wave take it';
+    go.disabled = chosenIdx < 0 || busy;
+    go.onclick = sacrifice;
+    row.appendChild(go);
+  } else {
+    $('phase-hint').textContent = 'Spell a real word using every remaining tile';
+    const sl = document.createElement('div');
+    sl.id = 'slots';
+    slots.forEach((poolIdx, i) => {
+      const d = document.createElement('div');
+      d.className = 'slot' + (poolIdx !== null ? ' filled' : '');
+      d.textContent = poolIdx !== null ? pool[poolIdx] : '';
+      d.onclick = () => { if (slots[i] !== null && !busy){ slots[i] = null; render(); } };
+      sl.appendChild(d);
+    });
+    area.appendChild(sl);
+    const t = document.createElement('div');
+    t.className = 'tiles';
+    pool.forEach((ch, pi) => {
+      const b = document.createElement('button');
+      b.className = 'tile' + (slots.includes(pi) ? ' in-slot' : '');
+      b.textContent = ch;
+      b.onclick = () => {
+        if (busy || slots.includes(pi)) return;
+        const empty = slots.indexOf(null);
+        if (empty > -1){ slots[empty] = pi; render(); }
+      };
+      t.appendChild(b);
+    });
+    area.appendChild(t);
+    const submit = document.createElement('button');
+    submit.className = 'act primary';
+    submit.textContent = 'Submit word';
+    submit.disabled = slots.includes(null) || busy;
+    submit.onclick = commitWord;
+    const clear = document.createElement('button');
+    clear.className = 'act';
+    clear.textContent = 'Clear';
+    clear.onclick = () => { slots = slots.map(() => null); render(); };
+    row.appendChild(submit);
+    row.appendChild(clear);
+  }
+  $('hint-btn').disabled = done || busy;
+  $('reset-btn').disabled = done || busy;
+}
+
+function sacrifice(){
+  if (chosenIdx < 0 || busy) return;
+  busy = true;
+  const w = cur();
+  const tiles = document.querySelectorAll('#play-area .tile');
+  if (tiles[chosenIdx]) tiles[chosenIdx].classList.add('taken');
+  const splash = $('splash');
+  splash.classList.add('go');
+  setTimeout(() => {
+    pool = shuffle(w.split('').filter((_, i) => i !== chosenIdx));
+    slots = pool.map(() => null);
+    chosenIdx = -1;
+    phase = 'rebuild';
+    busy = false;
+    splash.classList.remove('go');
+    render();
+  }, 950);
+}
+
+async function commitWord(){
+  const w = slots.map(pi => pool[pi]).join('');
+  if (w.length !== pool.length || busy) return;
+  busy = true;
+  render();
+  $('phase-hint').innerHTML = '<span id="checking">checking the dictionary...</span>';
+  const res = await dictionaryCheck(w);
+  busy = false;
+  if (!res.ok){
+    toast('Dictionary unreachable - word not locked in. Try again.', true);
+    render();
+    return;
+  }
+  if (!res.valid){
+    toast('Not in the dictionary: ' + w, true);
+    const card = $('card'); card.classList.add('shake');
+    setTimeout(() => card.classList.remove('shake'), 400);
+    render();
+    return;
+  }
+  words.push(w);
+  dayState.words = words.slice(); save();
+  phase = 'choose';
+  pool = []; slots = [];
+  toast(w + ' holds. The tide rolls in...');
+  if (w.length === 3){
+    finishDay();
+  } else {
+    render();
+  }
+}
+
+function finishDay(){
+  done = true; dayState.done = true;
+  const stars = resets === 0 ? 3 : (resets <= 2 ? 2 : 1);
+  dayState.stars = stars; save();
+  store.streak = (store.lastWin === DAY - 1) ? store.streak + 1 : 1;
+  store.lastWin = DAY; save();
+  $('modal-title').textContent = stars === 3 ? 'Flawless castle!' : 'The flag still stands!';
+  $('stars').innerHTML = '\u2605'.repeat(stars) + '<span class="off">' + '\u2605'.repeat(3 - stars) + '</span>';
+  $('modal-sub').textContent = resets === 0
+    ? 'Down to ' + cur() + ' without a single reset.'
+    : 'Down to ' + cur() + ' with ' + resets + (resets === 1 ? ' reset.' : ' resets.');
+  $('modal-words').textContent = words.join(' \u2192 ');
+  const mid = new Date(); mid.setHours(24, 0, 0, 0);
+  const mins = Math.max(1, Math.round((mid - Date.now()) / 60000));
+  $('next-vault').textContent = 'Next tide in ' + Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm';
+  render();
+  setTimeout(() => $('modal-wrap').classList.add('show'), 600);
+}
+
+$('hint-btn').onclick = () => {
+  if (done || busy) return;
+  const sol = SEED.sol;
+  const idx = words.length - 1;
+  if (idx >= sol.length - 1) return;
+  const target = sol[idx + 1];
+  if (phase === 'choose'){
+    // find the letter in cur() missing from target
+    const tCount = {};
+    for (const ch of target) tCount[ch] = (tCount[ch] || 0) + 1;
+    const dropLetters = new Set();
+    for (const ch of cur()){
+      if (tCount[ch]){ tCount[ch]--; } else dropLetters.add(ch);
+    }
+    let first = true;
+    document.querySelectorAll('#play-area .tile').forEach((el, i) => {
+      if (dropLetters.has(cur()[i])){
+        el.classList.add('hintglow');
+        if (first){ chosenIdx = i; first = false; }
+      }
+    });
+    toast('The gulls circle one letter...');
+    render();
+    document.querySelectorAll('#play-area .tile').forEach((el, i) => {
+      if (dropLetters.has(cur()[i])) el.classList.add('hintglow');
+    });
+  } else {
+    // spell the target using pool tiles
+    const used = slots.map(() => null);
+    const remaining = pool.map((_, i) => i);
+    let ok = true;
+    const assign = [];
+    for (const ch of target){
+      const pi = remaining.find(i => pool[i] === ch);
+      if (pi === undefined){ ok = false; break; }
+      remaining.splice(remaining.indexOf(pi), 1);
+      assign.push(pi);
+    }
+    if (ok && assign.length === slots.length){
+      slots = assign;
+      toast('The gulls spell it out for you this once.');
+      render();
+    }
+  }
+};
+
+$('reset-btn').onclick = () => {
+  if (done || busy) return;
+  if (!confirm('Reset the beach? The castle goes back up, but it costs your flawless star.')) return;
+  resets++;
+  dayState.resets = resets;
+  words = [SEED.w];
+  dayState.words = words.slice(); save();
+  phase = 'choose'; chosenIdx = -1; pool = []; slots = [];
+  toast('The castle rises again.');
+  render();
+};
+
+$('share-btn').onclick = () => {
+  const stars = dayState.stars;
+  const text = [
+    '\u{1F3F0} SANDCASTLE Day #' + PUZZLE,
+    'Washed down to ' + cur() + ' - ' + '\u2B50'.repeat(stars) + (resets === 0 ? ' no resets' : ''),
+    words.join(' \u2192 ')
+  ].join('\n');
+  if (navigator.share){ navigator.share({ text }).catch(() => {}); }
+  else if (navigator.clipboard){ navigator.clipboard.writeText(text).then(() => toast('Copied to clipboard')); }
+};
+
+render();
+if (done && dayState.stars > 0){ setTimeout(() => $('modal-wrap').classList.add('show'), 500); }
+</script>
+</body>
+</html>

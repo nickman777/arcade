@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Bankroll - daily word heist</title>
+<style>
+  :root{
+    --felt:#0d5c34; --felt-dark:#083d23; --felt-light:#12784a;
+    --gold:#f5c453; --gold-dark:#c9962e; --cream:#fff8e7; --ink:#222;
+    --bad:#e4572e;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:radial-gradient(ellipse at 50% 0%, var(--felt-light), var(--felt) 45%, var(--felt-dark));
+    color:var(--cream); min-height:100%; touch-action:manipulation;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    user-select:none; -webkit-user-select:none;
+  }
+  #app{max-width:480px;margin:0 auto;padding:14px 14px 30px;display:flex;flex-direction:column;min-height:100vh;}
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:4px;}
+  h1{font-size:26px;margin:0;letter-spacing:1px;color:var(--gold);text-shadow:0 2px 0 rgba(0,0,0,.35);}
+  h1 .coin{font-size:22px;}
+  #meta{text-align:right;font-size:13px;opacity:.92;line-height:1.5;}
+  #meta b{color:var(--gold);}
+  #tagline{font-size:12.5px;opacity:.75;margin:0 0 12px;font-style:italic;}
+  #statusbar{display:flex;justify-content:space-between;font-size:14px;background:rgba(0,0,0,.28);
+    border-radius:10px;padding:8px 12px;margin-bottom:12px;}
+  #statusbar b{color:var(--gold);}
+  .zone-label{font-size:11px;letter-spacing:2px;text-transform:uppercase;opacity:.65;margin:2px 2px 6px;}
+  #staging{min-height:64px;border:2px dashed rgba(255,248,231,.45);border-radius:14px;
+    display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;padding:8px;margin-bottom:10px;
+    transition:border-color .2s;}
+  #staging.hot{border-color:var(--gold);}
+  #staging .placeholder{font-size:13px;opacity:.5;font-style:italic;}
+  #tray{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;padding:14px 6px;
+    background:rgba(0,0,0,.22);border-radius:16px;margin-bottom:12px;min-height:70px;align-items:center;}
+  .chip{
+    width:48px;height:48px;border-radius:12px;border:none;cursor:pointer;
+    background:linear-gradient(160deg,#ffe08a,var(--gold) 55%,var(--gold-dark));
+    color:var(--ink);font-size:23px;font-weight:800;font-family:inherit;
+    box-shadow:0 3px 0 rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.6);
+    display:flex;align-items:center;justify-content:center;touch-action:manipulation;
+    transition:transform .08s;
+  }
+  .chip:active{transform:scale(.9);}
+  .chip.staged{width:42px;height:42px;font-size:20px;border-radius:10px;}
+  #buttons{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-bottom:8px;}
+  #buttons2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;}
+  button.act{
+    border:none;border-radius:12px;padding:13px 6px;font-size:14px;font-weight:700;font-family:inherit;
+    background:rgba(255,248,231,.16);color:var(--cream);cursor:pointer;touch-action:manipulation;
+  }
+  button.act:active{transform:scale(.96);}
+  button.act.primary{background:linear-gradient(160deg,#ffe08a,var(--gold) 55%,var(--gold-dark));color:var(--ink);
+    font-size:16px;box-shadow:0 3px 0 rgba(0,0,0,.35);}
+  button.act:disabled{opacity:.45;}
+  #banked{margin-bottom:12px;}
+  .banked-word{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:rgba(0,0,0,.22);
+    border-radius:12px;padding:7px 10px;margin-bottom:7px;}
+  .banked-word .mini{width:26px;height:26px;border-radius:7px;background:var(--cream);color:var(--ink);
+    font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+  .banked-word .len{margin-left:auto;font-size:12px;opacity:.7;}
+  #toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:var(--cream);padding:11px 18px;border-radius:12px;font-size:14px;
+    opacity:0;transition:all .25s;pointer-events:none;max-width:86vw;text-align:center;z-index:30;}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  #toast.bad{background:var(--bad);}
+  #modal-wrap{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:40;padding:20px;}
+  #modal-wrap.show{display:flex;}
+  #modal{background:linear-gradient(170deg,#0f6b3d,var(--felt-dark));border:2px solid var(--gold);border-radius:20px;
+    padding:26px 22px;max-width:400px;width:100%;text-align:center;}
+  #modal h2{margin:0 0 4px;color:var(--gold);font-size:24px;}
+  #stars{font-size:34px;margin:6px 0 10px;letter-spacing:6px;}
+  #modal .words{font-size:15px;margin:8px 0 14px;line-height:1.9;}
+  #modal .words span{background:rgba(0,0,0,.3);border-radius:8px;padding:3px 9px;margin:0 3px;font-weight:700;}
+  #modal p.small{font-size:13px;opacity:.8;margin:10px 0 0;}
+  #share-btn{margin-top:14px;width:100%;}
+  #howto{font-size:13px;background:rgba(0,0,0,.22);border-radius:12px;padding:10px 14px;margin-top:auto;}
+  #howto summary{cursor:pointer;font-weight:700;color:var(--gold);}
+  #howto p{margin:8px 0 0;line-height:1.55;opacity:.9;}
+  .shake{animation:shake .35s;}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}50%{transform:translateX(7px)}75%{transform:translateX(-4px)}}
+  #checking{display:inline-block;animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1><span class="coin">&#129689;</span> BANKROLL</h1>
+    <div id="meta">Vault <b id="puzzle-num"></b><br>&#128293; <b id="streak"></b> day streak</div>
+  </header>
+  <p id="tagline">One fat word sits in the vault. Cash it out, chip by chip - nothing may be left behind.</p>
+  <div id="statusbar">
+    <span>&#129689; <b id="chips-left"></b> chips left</span>
+    <span>Words: <b id="word-count"></b></span>
+    <span>Par: <b id="par"></b></span>
+  </div>
+
+  <div class="zone-label">Your word</div>
+  <div id="staging"><span class="placeholder">tap chips below to spell</span></div>
+
+  <div id="buttons">
+    <button class="act primary" id="cash-btn">CASH OUT</button>
+    <button class="act" id="back-btn">&#9003;</button>
+    <button class="act" id="clear-btn">Clear</button>
+  </div>
+
+  <div class="zone-label">The vault</div>
+  <div id="tray"></div>
+
+  <div id="buttons2">
+    <button class="act" id="shuffle-btn">Shuffle</button>
+    <button class="act" id="undo-btn">Undo word</button>
+    <button class="act" id="hint-btn">Hint</button>
+  </div>
+
+  <div id="banked"></div>
+
+  <button class="act" id="endday-btn" style="margin-bottom:12px;">Walk away (end day)</button>
+
+  <details id="howto">
+    <summary>How to play</summary>
+    <p>Every day one big word sits in the vault, broken into letter chips. Cash out real words (3+ letters) - each chip can only be spent <b>once</b>, across your whole day. Empty the tray for a <b>Clean Sweep</b>. Do it in par words or fewer for the <b>Jackpot</b>. Words are checked live against Wiktionary - a real dictionary, no canned wordlists. The vault word itself doesn't count. &#9733; bank 80%+ &middot; &#9733;&#9733; clean sweep &middot; &#9733;&#9733;&#9733; sweep at par.</p>
+  </details>
+</div>
+
+<div id="toast"></div>
+<div id="modal-wrap"><div id="modal">
+  <h2 id="modal-title"></h2>
+  <div id="stars"></div>
+  <div id="modal-sub"></div>
+  <div class="words" id="modal-words"></div>
+  <button class="act primary" id="share-btn">Share your haul</button>
+  <p class="small" id="next-vault"></p>
+</div></div>
+
+<script>
+
+// daily content is scrambled so the page source can't spoil the puzzle
+function _ks(){var s=0x9E3779B9^8675309,k=[];for(var i=0;i<64;i++){s^=s<<13;s>>>=0;s^=s>>>17;s^=s<<5;s>>>=0;k.push(s&255);}return k;}
+function _dx(b){var k=_ks(),s=atob(b),o='';for(var i=0;i<s.length;i++)o+=String.fromCharCode(s.charCodeAt(i)^k[i%64]);return decodeURIComponent(escape(o));}
+
+const SEEDS = eval("(" + _dx("M0VwJCGJwnUVovxNtTqUzHBR7TFAHQu1VwMdIsp3UrOdtudXnppzueqNzYTR1pSlkSVwrIy03UjWwyrPk9uYES0dEkUZtd9+YYvNetha8bhGbKYnOxo5lWZyCCLNVWie9bmFUeCXS7LMirqt77j2tPc2SczDx6l64rIqsubqqzdSfXwkKZGUaBrc70msLJHdEi/tTjR0OJ8CZFIi4CQdpNDX50GLi3XVjOvZncul/deWCGzyvKbRE9KWYaSdvYAEKwR3KH28tBMCsP8vvxXxkhUjsWpaGjaba3x2TKtDbviLzeAjt6tEpPSGuqX37uuskTVCzsPN2h+Gu0zZlb2XOERFcCQhicJ1Arr/QLAtmtFmV49PRxELtVcDHSLKd1KznbbnUIKLZN2OjbbxzMuWsuQrKt37uPcTgYJ6pOHNggAtAxJFCKy3BWbXjHiDGuerGSO5cgwHIPNycWpLpiMR+OW/gSTr7WTRkY3Hq7SI8dfNDzeny9WpcOmqWdeF0ZliRG8gZSjEyn5hiMNk2DP61XRXiVVHEVyHcXBsRbkjYKKL5+AjvL0MuY3j1JHey4K/8yoqrKa0jVLTwz+y5umlKVIUd08TsL91bdzqQbEgmMoSXrcxah1br1IDCEm4TXOb9LmPTYLtGr7m2vukorD918UXYbrds7N89bxJueq9mAwmCAMjB4PUWGHb13/YT5vUdFCCTS90NYACFQ8ummVP5ZXB4HCopgzF4ezWl8vK9tuRKELJyMDabtzVB77m4b1/TwgYSwmqrwAIr+kvzkj96FRx8C9MHQi7SQN0Ka9NepfzyuwkkIVkzZKNx6u0iPHXzQ83p8PVr2fptUTQgcntaUhvIGUoxMp+YYjDZNgz+sp8RIJJRxFcmGR3al3NWUDzrc3geLDwEcqO/9eUy8GDsuErKqym5JxBm8shvrX1pn8zaANHCLuvdW3c+EC3JZ/LEl63Fz0=") + ")");
+const EPOCH = new Date(2026, 8, 7); // Sep 7 2026 local = Vault #1
+
+function daysSinceEpoch(){
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.max(0, Math.round((today - EPOCH) / 86400000));
+}
+const DAY = daysSinceEpoch();
+const SEED = SEEDS[DAY % SEEDS.length];
+const PUZZLE = DAY + 1;
+
+// ---------- persistent state ----------
+const LS_KEY = 'bankroll-v1';
+let store;
+try { store = JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch(e){ store = {}; }
+store.days = store.days || {};
+store.streak = store.streak || 0;
+store.lastSweep = (store.lastSweep === undefined) ? -1 : store.lastSweep;
+store.dict = store.dict || {};
+function save(){ try { localStorage.setItem(LS_KEY, JSON.stringify(store)); } catch(e){} }
+
+let dayState = store.days[PUZZLE] || { banked: [], done: false, stars: 0 };
+store.days[PUZZLE] = dayState;
+
+// ---------- live dictionary check (no baked-in wordlists) ----------
+async function dictionaryCheck(word){
+  const key = word.toLowerCase();
+  if (key in store.dict) return { ok: true, valid: store.dict[key] };
+  // Primary: Wiktionary (the real open dictionary). Fallback: Free Dictionary API.
+  const sources = [
+    'https://en.wiktionary.org/api/rest_v1/page/definition/',
+    'https://api.dictionaryapi.dev/api/v2/entries/en/'
+  ];
+  for (const base of sources){
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 8000);
+    try {
+      const r = await fetch(base + encodeURIComponent(key), { signal: ctl.signal });
+      clearTimeout(timer);
+      if (r.status === 200){ store.dict[key] = true; save(); return { ok: true, valid: true }; }
+      if (r.status === 404){ store.dict[key] = false; save(); return { ok: true, valid: false }; }
+    } catch(e){ clearTimeout(timer); }
+  }
+  return { ok: false, valid: false };
+}
+
+// ---------- game state ----------
+if (!dayState.trayOrder){
+  const arr = SEED.w.split('');
+  for (let i = arr.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
+  dayState.trayOrder = arr; save();
+}
+let tray = dayState.trayOrder.slice();
+let staged = [];       // indices into tray
+let banked = dayState.banked.slice();  // words already cashed
+let done = dayState.done;
+
+// remove already-banked letters from tray on load
+for (const w of banked){ for (const ch of w){ const i = tray.indexOf(ch); if (i > -1) tray.splice(i, 1); } }
+
+const $ = id => document.getElementById(id);
+const toastEl = $('toast');
+let toastTimer;
+function toast(msg, bad){
+  toastEl.textContent = msg;
+  toastEl.className = 'show' + (bad ? ' bad' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.className = '', 2400);
+}
+
+function lettersLeft(){ return tray.length - staged.length; }
+function totalLetters(){ return SEED.w.length; }
+function bankedLetters(){ return banked.reduce((n, w) => n + w.length, 0); }
+
+function render(){
+  $('puzzle-num').textContent = '#' + PUZZLE;
+  $('streak').textContent = store.streak;
+  $('par').textContent = SEED.par + (SEED.par === 1 ? ' word' : ' words');
+  $('word-count').textContent = banked.length;
+  $('chips-left').textContent = totalLetters() - bankedLetters() - staged.length;
+
+  // staging
+  const st = $('staging');
+  st.innerHTML = '';
+  if (!staged.length){ st.innerHTML = '<span class="placeholder">tap chips below to spell</span>'; }
+  staged.forEach((ti, pos) => {
+    const b = document.createElement('button');
+    b.className = 'chip staged';
+    b.textContent = tray[ti];
+    b.onclick = () => { staged.splice(pos, 1); render(); };
+    st.appendChild(b);
+  });
+
+  // tray
+  const tr = $('tray');
+  tr.innerHTML = '';
+  let anyFree = false;
+  tray.forEach((ch, i) => {
+    if (staged.includes(i)) return;
+    anyFree = true;
+    const b = document.createElement('button');
+    b.className = 'chip';
+    b.textContent = ch;
+    b.onclick = () => { if (!done){ staged.push(i); render(); } };
+    tr.appendChild(b);
+  });
+  if (!anyFree && !staged.length){ tr.innerHTML = '<span style="opacity:.6;font-style:italic;">vault empty</span>'; }
+
+  // banked
+  const bk = $('banked');
+  bk.innerHTML = '';
+  if (banked.length){
+    const lab = document.createElement('div');
+    lab.className = 'zone-label';
+    lab.textContent = 'Cashed out';
+    bk.appendChild(lab);
+  }
+  banked.forEach(w => {
+    const row = document.createElement('div');
+    row.className = 'banked-word';
+    w.split('').forEach(ch => {
+      const m = document.createElement('span'); m.className = 'mini'; m.textContent = ch; row.appendChild(m);
+    });
+    const len = document.createElement('span'); len.className = 'len'; len.textContent = w.length + ' chips'; row.appendChild(len);
+    bk.appendChild(row);
+  });
+
+  $('cash-btn').disabled = done || staged.length < 3;
+  $('undo-btn').disabled = done || !banked.length;
+  $('hint-btn').disabled = done;
+  $('endday-btn').disabled = done;
+  if (done) $('cash-btn').textContent = 'DAY COMPLETE'; else $('cash-btn').textContent = 'CASH OUT';
+}
+
+function stagedWord(){ return staged.map(i => tray[i]).join(''); }
+
+$('back-btn').onclick = () => { staged.pop(); render(); };
+$('clear-btn').onclick = () => { staged = []; render(); };
+$('shuffle-btn').onclick = () => {
+  const free = tray.filter((_, i) => !staged.includes(i));
+  for (let i = free.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [free[i], free[j]] = [free[j], free[i]]; }
+  const kept = staged.map(i => tray[i]);
+  tray = kept.concat(free);
+  staged = kept.map((_, i) => i);
+  render();
+};
+$('undo-btn').onclick = () => {
+  if (!banked.length) return;
+  const w = banked.pop();
+  dayState.banked = banked.slice(); save();
+  for (const ch of w) tray.push(ch);
+  toast(w + ' goes back in the vault');
+  render();
+};
+$('hint-btn').onclick = () => {
+  const rem = {};
+  tray.forEach((ch, i) => { if (!staged.includes(i)) rem[ch] = (rem[ch] || 0) + 1; });
+  for (const w of SEED.sol){
+    if (banked.includes(w)) continue;
+    const need = {};
+    for (const ch of w) need[ch] = (need[ch] || 0) + 1;
+    if (Object.keys(need).every(ch => (rem[ch] || 0) >= need[ch])){
+      // stage it
+      for (const ch of w){
+        const i = tray.findIndex((c, idx) => c === ch && !staged.includes(idx));
+        staged.push(i);
+      }
+      toast('The house whispers: try ' + w.length + ' letters...');
+      render();
+      return;
+    }
+  }
+  toast('No hint left from here - undo a word and try another split', true);
+};
+
+$('cash-btn').onclick = async () => {
+  if (done) return;
+  const w = stagedWord();
+  if (w.length < 3){ toast('Words need at least 3 chips', true); return; }
+  if (w === SEED.w){ toast("That's the vault itself - break it down!", true); return; }
+  if (banked.includes(w)){ toast('Already cashed that one today', true); return; }
+  const btn = $('cash-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span id="checking">checking the book...</span>';
+  const res = await dictionaryCheck(w);
+  btn.disabled = false;
+  btn.textContent = 'CASH OUT';
+  if (!res.ok){ toast('Dictionary unreachable - no chips spent. Try again.', true); render(); return; }
+  if (!res.valid){
+    toast('Not in the dictionary: ' + w, true);
+    const st = $('staging'); st.classList.add('shake');
+    setTimeout(() => st.classList.remove('shake'), 400);
+    return;
+  }
+  // cash it: remove staged chips from tray
+  const idxs = staged.slice().sort((a, b) => b - a);
+  idxs.forEach(i => tray.splice(i, 1));
+  staged = [];
+  banked.push(w);
+  dayState.banked = banked.slice(); save();
+  toast(w + ' cashed. +' + w.length + ' chips banked');
+  render();
+  if (tray.length === 0) finishDay(true);
+};
+
+$('endday-btn').onclick = () => {
+  if (done) return;
+  if (!confirm('Walk away? Leftover chips stay in the vault.')) return;
+  finishDay(false);
+};
+
+function finishDay(sweep){
+  done = true; dayState.done = true;
+  let stars;
+  if (sweep){ stars = (banked.length <= SEED.par) ? 3 : 2; }
+  else { stars = (bankedLetters() / totalLetters() >= 0.8) ? 1 : 0; }
+  dayState.stars = stars; save();
+  if (sweep){
+    store.streak = (store.lastSweep === DAY - 1) ? store.streak + 1 : 1;
+    store.lastSweep = DAY; save();
+  }
+  const starStr = '&#9733;'.repeat(stars) + '<span style="opacity:.3">' + '&#9733;'.repeat(3 - stars) + '</span>';
+  $('stars').innerHTML = starStr;
+  $('modal-title').textContent = sweep ? (stars === 3 ? 'JACKPOT!' : 'Clean Sweep!') : (stars ? 'Decent Haul' : 'Empty-handed');
+  $('modal-sub').innerHTML = sweep
+    ? banked.length + ' words (par ' + SEED.par + ')'
+    : 'Banked ' + bankedLetters() + ' of ' + totalLetters() + ' chips';
+  $('modal-words').innerHTML = banked.map(w => '<span>' + w + '</span>').join('') || '<span style="opacity:.6">nothing cashed</span>';
+  const mid = new Date(); mid.setHours(24, 0, 0, 0);
+  const mins = Math.max(1, Math.round((mid - Date.now()) / 60000));
+  $('next-vault').textContent = 'Next vault in ' + Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm';
+  $('modal-wrap').classList.add('show');
+  render();
+}
+
+$('share-btn').onclick = () => {
+  const stars = dayState.stars;
+  const lines = [
+    '\u{1F4B0} BANKROLL Vault #' + PUZZLE,
+    (dayState.stars >= 2 ? 'Clean sweep' : 'Banked ' + bankedLetters() + '/' + totalLetters()) +
+      ' - ' + banked.length + ' words (par ' + SEED.par + ') ' + '\u2B50'.repeat(stars),
+    banked.join(' \u00B7 ')
+  ];
+  const text = lines.join('\n');
+  if (navigator.share){ navigator.share({ text }).catch(() => {}); }
+  else if (navigator.clipboard){ navigator.clipboard.writeText(text).then(() => toast('Copied to clipboard')); }
+};
+
+// reopen modal if day already finished
+if (done){
+  render();
+  if (dayState.stars > 0 || dayState.banked.length){ setTimeout(() => $('modal-wrap').classList.add('show'), 400); }
+} else {
+  render();
+}
+</script>
+</body>
+</html>
