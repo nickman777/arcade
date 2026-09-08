@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Math Cross - use every block</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;min-height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:linear-gradient(170deg,#0f2e3d 0%,#134e4a 55%,#0d3a38 100%);
+    color:#e6fffa;touch-action:manipulation;user-select:none;-webkit-user-select:none;
+    min-height:100vh;overflow-x:hidden;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+  }
+  #backbar{display:inline-block;margin:10px 0 0 16px;color:#99f6e4;text-decoration:none;font-size:13px;font-weight:600;opacity:.8;}
+  #app{max-width:460px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
+  header{display:flex;align-items:baseline;justify-content:space-between;padding:14px 16px 0;}
+  h1{font-size:24px;margin:0;letter-spacing:1.5px;color:#99f6e4;text-shadow:0 0 18px rgba(45,212,191,.35);}
+  #meta{text-align:right;font-size:13px;line-height:1.5;color:#7ad9c9;}
+  #meta b{color:#fde68a;}
+  #tagline{margin:2px 16px 0;font-size:12.5px;font-style:italic;color:#8fd8ca;}
+
+  #expr-wrap{margin:14px 16px 0;background:rgba(4,24,22,.65);border:1px solid rgba(153,246,228,.2);border-radius:14px;padding:12px;min-height:96px;box-shadow:inset 0 2px 10px rgba(0,0,0,.4);}
+  #expr-label{font-size:10.5px;letter-spacing:2px;color:#5eead4;opacity:.8;margin-bottom:8px;}
+  #expr{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:44px;}
+  #expr .tok{min-width:38px;height:44px;padding:0 8px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:800;cursor:pointer;}
+  #expr .tok.num{background:#fef3c7;color:#78350f;box-shadow:0 3px 0 rgba(0,0,0,.35);}
+  #expr .tok.op{background:#0d9488;color:#e6fffa;box-shadow:0 3px 0 rgba(0,0,0,.35);}
+  #expr .tok:active{transform:scale(.93);}
+  #expr .ghost{color:#5eead4;opacity:.45;font-size:14px;font-style:italic;padding:0 4px;cursor:default;}
+  #expr-wrap.shake{animation:shake .4s;}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+  #expr-wrap.good{animation:glow .6s;}
+  @keyframes glow{0%{box-shadow:0 0 0 0 rgba(94,234,212,.0)}40%{box-shadow:0 0 24px 4px rgba(94,234,212,.55)}100%{box-shadow:inset 0 2px 10px rgba(0,0,0,.4)}}
+  #expr-val{margin-left:auto;font-size:22px;font-weight:900;color:#fde68a;padding-left:8px;}
+
+  #blocks{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:16px 16px 0;}
+  .blk{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;cursor:pointer;transition:transform .08s;}
+  .blk.num{background:linear-gradient(160deg,#fef3c7,#fcd34d);color:#78350f;box-shadow:0 4px 0 rgba(0,0,0,.4);}
+  .blk.op{background:linear-gradient(160deg,#14b8a6,#0d9488);color:#e6fffa;box-shadow:0 4px 0 rgba(0,0,0,.4);}
+  .blk:active{transform:scale(.92);}
+  .blk.used{opacity:.18;pointer-events:none;}
+
+  #controls{display:flex;gap:10px;justify-content:center;margin:16px 16px 0;}
+  .ctl{flex:1;max-width:130px;border:none;border-radius:12px;padding:11px 8px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;color:#e6fffa;background:#115e59;box-shadow:0 3px 0 rgba(0,0,0,.4);}
+  .ctl:active{transform:scale(.96);}
+  .ctl:disabled{opacity:.4;}
+
+  #targets{margin:18px 16px 0;background:rgba(4,24,22,.65);border:1px solid rgba(153,246,228,.2);border-radius:14px;padding:12px 14px;}
+  #targets-label{font-size:10.5px;letter-spacing:2px;color:#5eead4;opacity:.8;margin-bottom:8px;text-align:center;}
+  #target-row{display:flex;gap:10px;justify-content:center;}
+  .tgt{flex:1;max-width:120px;text-align:center;border-radius:12px;padding:10px 6px;background:#0b3b36;border:2px dashed rgba(153,246,228,.35);}
+  .tgt .n{font-size:32px;font-weight:900;color:#fde68a;line-height:1.05;}
+  .tgt .how{font-size:11px;color:#8fd8ca;margin-top:4px;min-height:14px;word-break:break-word;}
+  .tgt.done{border:2px solid #34d399;background:rgba(6,78,59,.6);}
+  .tgt.done .n{color:#34d399;}
+  .tgt.done .how{color:#a7f3d0;font-weight:700;}
+
+  #howto{margin:16px 16px 12px;font-size:13px;background:rgba(4,24,22,.65);border-radius:12px;padding:10px 14px;color:#8fd8ca;border:1px solid rgba(153,246,228,.15);}
+  #howto summary{cursor:pointer;font-weight:700;color:#5eead4;}
+  #howto p{margin:8px 0 0;line-height:1.55;}
+  #foot{text-align:center;font-size:12px;color:rgba(138,216,202,.4);padding:0 0 calc(14px + env(safe-area-inset-bottom));letter-spacing:.5px;}
+
+  #toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);background:#062e2a;color:#ccfbf1;padding:11px 18px;border-radius:12px;font-size:14px;border:1px solid rgba(153,246,228,.3);opacity:0;transition:all .25s;pointer-events:none;max-width:86vw;text-align:center;z-index:30;}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  #modal-wrap{position:fixed;inset:0;background:rgba(4,24,22,.72);display:none;align-items:center;justify-content:center;z-index:40;padding:20px;}
+  #modal-wrap.show{display:flex;}
+  #modal{background:linear-gradient(170deg,#0f3d38,#0a2a27);border:1px solid rgba(153,246,228,.3);border-radius:22px;padding:26px 22px;max-width:400px;width:100%;text-align:center;color:#ccfbf1;box-shadow:0 12px 40px rgba(0,0,0,.5);}
+  #modal h2{margin:0 0 4px;color:#5eead4;font-size:26px;}
+  #stars{font-size:34px;margin:6px 0 10px;letter-spacing:6px;color:#fbbf24;}
+  #stars .off{opacity:.25;}
+  #modal .stats{font-size:14px;margin:8px 0 14px;line-height:1.9;color:#8fd8ca;}
+  #modal .stats b{color:#fde68a;}
+  #next{color:#7ad9c9;font-size:12.5px;margin-top:12px;}
+  button.act{border:none;border-radius:12px;padding:12px 16px;font-size:15px;font-weight:700;font-family:inherit;background:#115e59;color:#ccfbf1;cursor:pointer;touch-action:manipulation;width:100%;margin-top:8px;}
+  button.act:active{transform:scale(.97);}
+  button.act.primary{background:linear-gradient(160deg,#14b8a6,#0d9488);color:#fff;font-size:16px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <a id="backbar" href="./">&#8592; Arcade</a>
+  <header>
+    <h1>&#10135; MATH CROSS</h1>
+    <div id="meta">Board <b id="puzzle-num"></b><br>&#128293; <b id="streak"></b> day streak</div>
+  </header>
+  <p id="tagline">Use every block to hit every target. Multiply first, then add and subtract left to right.</p>
+
+  <div id="expr-wrap">
+    <div id="expr-label">YOUR COMBINATION - tap a placed block to pull it back</div>
+    <div id="expr"></div>
+  </div>
+
+  <div id="blocks"></div>
+
+  <div id="controls">
+    <button class="ctl" id="undo">&#9003; UNDO</button>
+    <button class="ctl" id="clear">CLEAR</button>
+  </div>
+
+  <div id="targets">
+    <div id="targets-label">TARGETS - HIT ALL THREE</div>
+    <div id="target-row"></div>
+  </div>
+
+  <details id="howto">
+    <summary>How to play</summary>
+    <p>Tap the blocks in order to build one long combination, like 8 &#215; 4 &#8722; 6 + 3. You must use EVERY block. Multiply before you add or subtract (8 &#215; 4 &#8722; 6 + 3 is 29, not 14). When the combination equals one of the targets in the box, that target checks off. Clear all three to win. One new board every day.</p>
+  </details>
+  <div id="foot">a fresh board every day - generated right on your phone</div>
+</div>
+
+<div id="toast"></div>
+<div id="modal-wrap">
+  <div id="modal">
+    <h2 id="modal-title">All targets hit</h2>
+    <div id="stars"></div>
+    <div class="stats" id="modal-stats"></div>
+    <button class="act primary" id="share-btn">Share your board</button>
+    <button class="act" id="more-btn">Keep playing (practice)</button>
+    <button class="act" id="daily-btn" style="display:none;">Back to the daily board</button>
+    <div id="next"></div>
+  </div>
+</div>
+
+<script>
+/*LOGIC_START*/
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+var OPS=["+","\u2212","\u00D7"];
+var OP_KEYS={"+":"+","-":"\u2212","x":"\u00D7","*":"\u00D7"};
+var LS_KEY="mathcross_v2";
+var store={};
+try{store=JSON.parse(localStorage.getItem(LS_KEY))||{};}catch(e){store={};}
+function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(store));}catch(e){}}
+var $=function(id){return document.getElementById(id);};
+
+function evalTokens(toks){
+  var nums=[toks[0].v],ops=[];
+  for(var i=1;i<toks.length;i+=2){ops.push(toks[i].v);nums.push(toks[i+1].v);}
+  var n2=[nums[0]],o2=[];
+  for(var i=0;i<ops.length;i++){
+    if(ops[i]==="\u00D7"){n2[n2.length-1]*=nums[i+1];}
+    else{n2.push(nums[i+1]);o2.push(ops[i]);}
+  }
+  var v=n2[0];
+  for(var i=0;i<o2.length;i++){v=(o2[i]==="+")?v+n2[i+1]:v-n2[i+1];}
+  return v;
+}
+
+function genBoard(rng){
+  for(var attempt=0;attempt<400;attempt++){
+    var digits=[],counts={};
+    while(digits.length<4){
+      var d=2+Math.floor(rng()*8);
+      if((counts[d]||0)>=2)continue;
+      counts[d]=(counts[d]||0)+1;digits.push(d);
+    }
+    var ops=["\u00D7"];
+    while(ops.length<3)ops.push(OPS[Math.floor(rng()*3)]);
+    var targets=[],exprs=[],seen={};
+    var guard=0;
+    while(targets.length<3&&guard<300){
+      guard++;
+      var dp=digits.slice(),op=ops.slice();
+      for(var i=dp.length-1;i>0;i--){var j=Math.floor(rng()*(i+1));var t=dp[i];dp[i]=dp[j];dp[j]=t;}
+      for(var i=op.length-1;i>0;i--){var j=Math.floor(rng()*(i+1));var t=op[i];op[i]=op[j];op[j]=t;}
+      var toks=[];for(var i=0;i<4;i++){toks.push({t:"num",v:dp[i]});if(i<3)toks.push({t:"op",v:op[i]});}
+      var key=toks.map(function(x){return x.v;}).join(" ");
+      if(seen[key])continue;
+      seen[key]=true;
+      var v=evalTokens(toks);
+      if(v<5||v>99)continue;
+      if(targets.indexOf(v)!==-1)continue;
+      targets.push(v);exprs.push(toks);
+    }
+    if(targets.length===3)return{digits:digits,ops:ops,targets:targets,solutions:exprs};
+  }
+  return null;
+}
+
+function dayNumber(){return Math.floor((Date.now()/1000/3600-5)/24);}
+var practice=0;
+var board=null;
+var state=null;
+
+function newBoard(){
+  var rng=practice?mulberry32(Math.floor(Math.random()*1e9)):mulberry32(dayNumber()*7919+12345);
+  board=genBoard(rng);
+  state={placed:[],used:board.digits.concat(board.ops).map(function(){return false;}),cleared:{},misses:0,lock:false};
+  render();
+}
+
+function blocksList(){
+  var list=[];
+  board.digits.forEach(function(d){list.push({t:"num",v:d});});
+  board.ops.forEach(function(o){list.push({t:"op",v:o});});
+  return list;
+}
+
+function expectOp(){return state.placed.length%2===1;}
+
+function render(){
+  var blocks=blocksList();
+  var be=$("blocks");be.innerHTML="";
+  blocks.forEach(function(b,i){
+    var d=document.createElement("div");
+    d.className="blk "+b.t+(state.used[i]?" used":"");
+    d.textContent=b.v;
+    d.addEventListener("click",function(){place(i);});
+    be.appendChild(d);
+  });
+  var ex=$("expr");ex.innerHTML="";
+  if(!state.placed.length){
+    var g=document.createElement("div");g.className="ghost";g.textContent="tap blocks below to build a combination";ex.appendChild(g);
+  }
+  state.placed.forEach(function(p,pi){
+    var d=document.createElement("div");
+    d.className="tok "+p.tok.t;
+    d.textContent=p.tok.v;
+    d.addEventListener("click",function(){pullBack(pi);});
+    ex.appendChild(d);
+  });
+  if(state.placed.length===7){
+    var v=document.createElement("div");v.id="expr-val";v.textContent="= "+evalTokens(state.placed.map(function(p){return p.tok;}));
+    ex.appendChild(v);
+  }
+  var tr=$("target-row");tr.innerHTML="";
+  board.targets.forEach(function(tv,ti){
+    var d=document.createElement("div");
+    var done=state.cleared[ti];
+    d.className="tgt"+(done?" done":"");
+    d.innerHTML='<div class="n">'+tv+'</div><div class="how">'+(done?done:"\u00A0")+'</div>';
+    tr.appendChild(d);
+  });
+  $("streak").textContent=store.streak||0;
+}
+
+function place(i){
+  if(!state||state.lock||state.used[i])return;
+  var blocks=blocksList();
+  var b=blocks[i];
+  if((b.t==="op")!==expectOp()){
+    toast(b.t==="op"?"An operator goes between numbers":"A number comes next");
+    return;
+  }
+  state.used[i]=true;
+  state.placed.push({bi:i,tok:b});
+  render();
+  if(state.placed.length===7){
+    state.lock=true;
+    setTimeout(checkCombo,350);
+  }
+}
+
+function pullBack(pi){
+  if(!state||state.lock)return;
+  var removed=state.placed.splice(pi);
+  removed.forEach(function(p){state.used[p.bi]=false;});
+  render();
+}
+
+function undoLast(){
+  if(!state||state.lock||!state.placed.length)return;
+  var p=state.placed.pop();state.used[p.bi]=false;render();
+}
+function clearAll(){
+  if(!state||state.lock)return;
+  state.placed.forEach(function(p){state.used[p.bi]=false;});
+  state.placed=[];render();
+}
+
+function checkCombo(){
+  if(!state)return;
+  var toks=state.placed.map(function(p){return p.tok;});
+  var v=evalTokens(toks);
+  var hit=-1;
+  board.targets.forEach(function(tv,ti){if(tv===v&&!state.cleared[ti])hit=ti;});
+  if(hit>=0){
+    var exprStr=toks.map(function(t){return t.v;}).join(" ");
+    state.cleared[hit]=exprStr;
+    $("expr-wrap").classList.add("good");
+    var allDone=board.targets.every(function(tv,ti){return state.cleared[ti];});
+    setTimeout(function(){
+      if(!state)return;
+      $("expr-wrap").classList.remove("good");
+      state.placed.forEach(function(p){state.used[p.bi]=false;});
+      state.placed=[];state.lock=false;
+      render();
+      if(allDone)finish();else toast("Target hit - "+(3-Object.keys(state.cleared).length)+" to go");
+    },700);
+  }else{
+    state.misses++;
+    $("expr-wrap").classList.add("shake");
+    var dup=board.targets.indexOf(v)!==-1;
+    setTimeout(function(){
+      if(!state)return;
+      $("expr-wrap").classList.remove("shake");
+      state.placed.forEach(function(p){state.used[p.bi]=false;});
+      state.placed=[];state.lock=false;
+      render();
+      toast(dup?"That target is already cleared":"= "+v+" - not a target");
+    },650);
+  }
+}
+
+function fmt(ms){var s=Math.floor(ms/1000);return Math.floor(s/60)+":"+("0"+(s%60)).slice(-2);}
+var t0=Date.now();
+
+function finish(){
+  var day=dayNumber();
+  var stars=state.misses<=2?3:(state.misses<=5?2:1);
+  if(!practice){
+    if(store.lastSolved!==day){
+      store.streak=(store.lastSolved===day-1)?(store.streak||0)+1:1;
+      store.lastSolved=day;
+      store["stars_"+day]=stars;
+      save();
+    }
+  }
+  $("modal-title").textContent=practice?"Practice board cleared":"All targets hit";
+  $("stars").innerHTML="";
+  for(var i=0;i<3;i++){var s=document.createElement("span");s.textContent="\u2605";if(i>=stars)s.className="off";$("stars").appendChild(s);}
+  $("modal-stats").innerHTML="Misses: <b>"+state.misses+"</b> &middot; Time: <b>"+fmt(Date.now()-t0)+"</b>"+(practice?"":" &middot; Streak: <b>"+(store.streak||1)+"</b>");
+  $("next").textContent=practice?"":"A new board lands at midnight.";
+  $("daily-btn").style.display=practice?"":"none";
+  $("modal-wrap").classList.add("show");
+}
+
+function toast(msg){
+  var t=$("toast");t.textContent=msg;t.classList.add("show");
+  clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove("show");},1800);
+}
+
+$("undo").addEventListener("click",undoLast);
+$("clear").addEventListener("click",clearAll);
+$("more-btn").addEventListener("click",function(){
+  practice=1;state=null;$("modal-wrap").classList.remove("show");t0=Date.now();newBoard();
+  $("puzzle-num").textContent="practice";
+});
+$("daily-btn").addEventListener("click",function(){
+  practice=0;state=null;$("modal-wrap").classList.remove("show");t0=Date.now();newBoard();
+  $("puzzle-num").textContent=dayNumber();
+});
+$("share-btn").addEventListener("click",function(){
+  var day=dayNumber();
+  var txt=(practice?"Math Cross practice":"Math Cross #"+day)+" - "+(state.misses<=2?3:(state.misses<=5?2:1))+"/3 stars, "+state.misses+" misses";
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){toast("Copied - paste it anywhere");},function(){toast(txt);});
+  }else{toast(txt);}
+});
+
+document.addEventListener("keydown",function(e){
+  if(!state||state.lock)return;
+  var k=e.key;
+  if(k==="Backspace"){undoLast();e.preventDefault();return;}
+  if(OP_KEYS[k])k=OP_KEYS[k];
+  var blocks=blocksList();
+  for(var i=0;i<blocks.length;i++){
+    if(!state.used[i]&&String(blocks[i].v)===k){place(i);return;}
+  }
+});
+
+// daily resume: if today's board already solved, note it
+$("puzzle-num").textContent=dayNumber();
+if(store.lastSolved===dayNumber()){$("tagline").textContent="Today's board is cleared - practice below, or come back tomorrow.";}
+newBoard();
+/*LOGIC_END*/
+</script>
+</body>
+</html>
