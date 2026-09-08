@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Math Cross - fill the crossword</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;min-height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:linear-gradient(170deg,#0f2e3d 0%,#134e4a 55%,#0d3a38 100%);
+    color:#e6fffa;touch-action:manipulation;user-select:none;-webkit-user-select:none;
+    min-height:100vh;overflow-x:hidden;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+  }
+  #backbar{display:inline-block;margin:10px 0 0 16px;color:#99f6e4;text-decoration:none;font-size:13px;font-weight:600;opacity:.8;}
+  #app{max-width:460px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
+  header{display:flex;align-items:baseline;justify-content:space-between;padding:14px 16px 0;}
+  h1{font-size:24px;margin:0;letter-spacing:1.5px;color:#99f6e4;text-shadow:0 0 18px rgba(45,212,191,.35);}
+  #meta{text-align:right;font-size:13px;line-height:1.5;color:#7ad9c9;}
+  #meta b{color:#fde68a;}
+  #tagline{margin:2px 16px 0;font-size:12.5px;font-style:italic;color:#8fd8ca;}
+
+  /* crossword-style board: tight square cells, grid lines, operator badges */
+  #board-wrap{margin:16px auto 0;padding:14px 10px;background:rgba(4,24,22,.7);border-radius:14px;
+    box-shadow:0 10px 30px rgba(0,0,0,.5),inset 0 1px 0 rgba(153,246,228,.15);
+    border:1px solid rgba(153,246,228,.18);width:min(94vw,380px);}
+  .grow{display:flex;align-items:center;justify-content:center;gap:4px;margin:3px 0;}
+  .cell{width:60px;height:56px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+    font-size:23px;font-weight:800;position:relative;}
+  .cell.given{background:linear-gradient(160deg,#fef9e7,#fde68a);color:#451a03;
+    border:2px solid rgba(69,26,3,.55);box-shadow:0 2px 0 rgba(0,0,0,.35);}
+  .cell.blank{background:#f8fafc;color:#0f2e3d;border:2px solid rgba(153,246,228,.55);cursor:pointer;}
+  .cell.blank .cluenum{position:absolute;top:2px;left:4px;font-size:9px;font-weight:700;color:#64748b;}
+  .cell.blank.filled{background:#ccfbf1;border-color:#2dd4bf;color:#134e4a;}
+  .cell.blank.target{border-color:#f59e0b;box-shadow:0 0 10px rgba(245,158,11,.5);}
+  .cell.bad{animation:badpulse .5s;}
+  @keyframes badpulse{50%{background:#fecaca;}}
+  .badge{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:18px;font-weight:900;background:#f59e0b;color:#1c1203;
+    box-shadow:0 2px 0 rgba(0,0,0,.4),0 0 8px rgba(245,158,11,.35);}
+  .badge.eq{background:#2dd4bf;color:#052e2a;box-shadow:0 2px 0 rgba(0,0,0,.4),0 0 8px rgba(45,212,191,.4);}
+  .downcol{width:60px;display:flex;align-items:center;justify-content:center;}
+  .bspacer{width:30px;}
+
+  #tray-wrap{margin:16px 16px 0;background:rgba(4,24,22,.65);border:1px solid rgba(153,246,228,.2);border-radius:14px;padding:12px 14px;}
+  #tray-label{font-size:10.5px;letter-spacing:2px;color:#5eead4;opacity:.8;margin-bottom:10px;text-align:center;}
+  #tray{display:flex;flex-wrap:wrap;justify-content:center;gap:9px;}
+  .tile{min-width:54px;height:48px;padding:0 10px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    font-size:22px;font-weight:800;cursor:pointer;transition:transform .08s;position:relative;
+    background:linear-gradient(160deg,#fef9e7,#fde68a);color:#451a03;border:2px solid rgba(69,26,3,.55);box-shadow:0 3px 0 rgba(0,0,0,.4);}
+  .tile .cluenum{position:absolute;top:2px;left:4px;font-size:9px;font-weight:700;color:#92610a;}
+  .tile:active{transform:scale(.92);}
+  .tile.sel{border-color:#f59e0b;box-shadow:0 0 0 3px #f59e0b,0 3px 0 rgba(0,0,0,.4);}
+  .tile.used{opacity:.15;pointer-events:none;}
+
+  #controls{display:flex;gap:10px;justify-content:center;margin:16px 16px 0;}
+  .ctl{flex:1;max-width:140px;border:none;border-radius:12px;padding:11px 8px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;color:#e6fffa;background:#115e59;box-shadow:0 3px 0 rgba(0,0,0,.4);}
+  .ctl:active{transform:scale(.96);}
+
+  #howto{margin:16px 16px 12px;font-size:13px;background:rgba(4,24,22,.65);border-radius:12px;padding:10px 14px;color:#8fd8ca;border:1px solid rgba(153,246,228,.15);}
+  #howto summary{cursor:pointer;font-weight:700;color:#5eead4;}
+  #howto p{margin:8px 0 0;line-height:1.55;}
+  #foot{text-align:center;font-size:12px;color:rgba(138,216,202,.4);padding:0 0 calc(14px + env(safe-area-inset-bottom));letter-spacing:.5px;}
+
+  #toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);background:#062e2a;color:#ccfbf1;padding:11px 18px;border-radius:12px;font-size:14px;border:1px solid rgba(153,246,228,.3);opacity:0;transition:all .25s;pointer-events:none;max-width:86vw;text-align:center;z-index:30;}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  #modal-wrap{position:fixed;inset:0;background:rgba(4,24,22,.72);display:none;align-items:center;justify-content:center;z-index:40;padding:20px;}
+  #modal-wrap.show{display:flex;}
+  #modal{background:linear-gradient(170deg,#0f3d38,#0a2a27);border:1px solid rgba(153,246,228,.3);border-radius:22px;padding:26px 22px;max-width:400px;width:100%;text-align:center;color:#ccfbf1;box-shadow:0 12px 40px rgba(0,0,0,.5);}
+  #modal h2{margin:0 0 4px;color:#5eead4;font-size:26px;}
+  #stars{font-size:34px;margin:6px 0 10px;letter-spacing:6px;color:#fbbf24;}
+  #stars .off{opacity:.25;}
+  #modal .stats{font-size:14px;margin:8px 0 14px;line-height:1.9;color:#8fd8ca;}
+  #modal .stats b{color:#fde68a;}
+  #next{color:#7ad9c9;font-size:12.5px;margin-top:12px;}
+  button.act{border:none;border-radius:12px;padding:12px 16px;font-size:15px;font-weight:700;font-family:inherit;background:#115e59;color:#ccfbf1;cursor:pointer;touch-action:manipulation;width:100%;margin-top:8px;}
+  button.act:active{transform:scale(.97);}
+  button.act.primary{background:linear-gradient(160deg,#14b8a6,#0d9488);color:#fff;font-size:16px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <a id="backbar" href="./">&#8592; Arcade</a>
+  <header>
+    <h1>&#10135; MATH CROSS</h1>
+    <div id="meta">Grid <b id="puzzle-num"></b><br>&#128293; <b id="streak"></b> day streak</div>
+  </header>
+  <p id="tagline">Every row and every column is a true equation. Some squares are empty - fill them all from the tiles below.</p>
+
+  <div id="board-wrap"><div id="board"></div></div>
+
+  <div id="tray-wrap">
+    <div id="tray-label">TILES - TAP A TILE, THEN TAP ITS SQUARE</div>
+    <div id="tray"></div>
+  </div>
+
+  <div id="controls">
+    <button class="ctl" id="clear">CLEAR PLACED</button>
+    <button class="ctl" id="check">CHECK</button>
+    <button class="ctl" id="practice-btn" style="display:none;">PRACTICE</button>
+  </div>
+
+  <details id="howto">
+    <summary>How to play</summary>
+    <p>Every row and every column is a true equation (like 11 &#215; 9 = 99), and the grid is one connected crossword: a number you place in one problem is also part of the problem that crosses it. The amber numbers are given; the white squares are empty - some are answers, some are parts of a problem. Tap a tile at the bottom, then tap the white square it belongs in. Tap a placed tile to pull it back. Use every tile so all six equations check out. One new grid every day.</p>
+  </details>
+  <div id="foot">a fresh grid every day - generated right on your phone</div>
+</div>
+
+<div id="toast"></div>
+<div id="modal-wrap">
+  <div id="modal">
+    <h2 id="modal-title">Grid complete</h2>
+    <div id="stars"></div>
+    <div class="stats" id="modal-stats"></div>
+    <button class="act primary" id="share-btn">Share your grid</button>
+    <button class="act" id="more-btn">Keep playing (practice)</button>
+    <button class="act" id="daily-btn" style="display:none;">Back to the daily grid</button>
+    <div id="next"></div>
+  </div>
+</div>
+
+<script>
+/*LOGIC_START*/
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+function applyOp(op,a,b){
+  if(op==="+")return a+b;
+  if(op==="-")return a-b;
+  if(op==="\u00D7")return a*b;
+  if(op==="\u00F7"){if(b===0||a%b!==0)return NaN;return a/b;}
+  return NaN;
+}
+
+function sampleRowEq(rand){
+  for(;;){
+    var r=rand(),op,a,b,c;
+    if(r<0.32){op="+";a=5+((rand()*45)|0);b=5+((rand()*45)|0);c=a+b;if(c>99)continue;}
+    else if(r<0.58){op="-";a=10+((rand()*60)|0);b=2+((rand()*Math.max(1,a-3))|0);c=a-b;if(c<2)continue;}
+    else if(r<0.85){op="\u00D7";a=3+((rand()*10)|0);b=2+((rand()*11)|0);c=a*b;if(c>144)continue;}
+    else{op="\u00F7";b=2+((rand()*11)|0);c=2+((rand()*12)|0);a=b*c;if(a>144)continue;}
+    return{op:op,a:a,b:b,c:c};
+  }
+}
+
+function colOptions(x,y){
+  var valid=[];
+  if(x+y<=150)valid.push(["+",x+y]);
+  if(x-y>=2)valid.push(["-",x-y]);
+  if(x>=2&&y>=2&&x*y<=150)valid.push(["\u00D7",x*y]);
+  if(y!==0&&x%y===0&&x/y>=2)valid.push(["\u00F7",x/y]);
+  return valid;
+}
+
+var EQS=[[0,1,2,"across",0],[3,4,5,"across",1],[6,7,8,"across",2],[0,3,6,"down",0],[1,4,7,"down",1],[2,5,8,"down",2]];
+var OP_CELLS=[0,1,3,4],RES_CELLS=[2,5,6,7,8];
+
+/* count distinct value-assignments of tiles to blanks that satisfy all six equations (cap 2) */
+function countPlacements(cells,blanks,vals,ops){
+  var sigs={},nfound=0,used=vals.map(function(){return false;}),assign=cells.slice();
+  function holds(){
+    for(var i=0;i<6;i++){var e=EQS[i];
+      if(applyOp(ops[e[3]][e[4]],assign[e[0]],assign[e[1]])!==assign[e[2]])return false;}
+    return true;
+  }
+  function bt(k){
+    if(nfound>1)return;
+    if(k===blanks.length){
+      if(holds()){
+        var sig=blanks.map(function(b){return assign[b];}).join(",");
+        if(!sigs[sig]){sigs[sig]=1;nfound++;}
+      }
+      return;
+    }
+    for(var t=0;t<vals.length;t++){if(used[t])continue;used[t]=true;assign[blanks[k]]=vals[t];bt(k+1);used[t]=false;}
+  }
+  bt(0);
+  return nfound;
+}
+
+/* choose 5 blank squares: a mix of operand and answer squares, every equation keeps a given, placement unique */
+function chooseBlanks(cells,ops,rand){
+  var idx=[0,1,2,3,4,5,6,7,8];
+  for(var attempt=0;attempt<400;attempt++){
+    var sh=idx.slice();
+    for(var i=sh.length-1;i>0;i--){var j=(rand()*(i+1))|0;var t=sh[i];sh[i]=sh[j];sh[j]=t;}
+    var blanks=sh.slice(0,5).sort(function(a,b){return a-b;});
+    var nOp=blanks.filter(function(b){return OP_CELLS.indexOf(b)>=0;}).length;
+    var nRes=5-nOp;
+    if(nOp<2||nRes<2)continue;
+    var given=idx.filter(function(c){return blanks.indexOf(c)<0;});
+    var covered=true;
+    for(var e=0;e<6;e++){var eq=EQS[e];
+      if(given.indexOf(eq[0])<0&&given.indexOf(eq[1])<0&&given.indexOf(eq[2])<0){covered=false;break;}
+    }
+    if(!covered)continue;
+    var vals=blanks.map(function(b){return cells[b];});
+    if(countPlacements(cells,blanks,vals,ops)!==1)continue;
+    return blanks;
+  }
+  return null;
+}
+
+function generateMathCross(rand){
+  for(var t=0;t<4000;t++){
+    var r0=sampleRowEq(rand),r1=sampleRowEq(rand);
+    if(r0.op!=="\u00D7"&&r1.op!=="\u00D7")continue;
+    var colPairs=[[r0.a,r1.a],[r0.b,r1.b],[r0.c,r1.c]],downs=[],ok=true;
+    for(var j=0;j<3;j++){
+      var v=colOptions(colPairs[j][0],colPairs[j][1]);
+      if(!v.length){ok=false;break;}
+      downs.push(v[(rand()*v.length)|0]);
+    }
+    if(!ok)continue;
+    var g=downs[0][1],h=downs[1][1],i=downs[2][1];
+    var r2ops=[];
+    ["+","-","\u00D7","\u00F7"].forEach(function(op){if(applyOp(op,g,h)===i)r2ops.push(op);});
+    if(!r2ops.length)continue;
+    var op2=r2ops[(rand()*r2ops.length)|0];
+    var results=[r0.c,r1.c,g,h,i];
+    if(new Set(results).size<5)continue;
+    var cells=[r0.a,r0.b,r0.c,r1.a,r1.b,r1.c,g,h,i];
+    var ops={across:[r0.op,r1.op,op2],down:[downs[0][0],downs[1][0],downs[2][0]]};
+    var xcount=ops.across.concat(ops.down).filter(function(o){return o==="\u00D7";}).length;
+    if(xcount<1)continue;
+    var blanks=chooseBlanks(cells,ops,rand);
+    if(!blanks)continue;
+    return{cells:cells,ops:ops,blanks:blanks};
+  }
+  return null;
+}
+/* ===== PURE LOGIC END ===== */
+
+var LS_KEY="mathcross_v3";
+var store={};
+try{store=JSON.parse(localStorage.getItem(LS_KEY))||{};}catch(e){store={};}
+function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(store));}catch(e){}}
+
+var practice=0,board=null,state=null,t0=Date.now();
+function dayNumber(){var d=new Date();return Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/86400000);}
+
+function $(id){return document.getElementById(id);}
+
+function newBoard(){
+  var rng=practice?mulberry32(Math.floor(Math.random()*1e9)):mulberry32(dayNumber()*7919+12345);
+  board=generateMathCross(rng);
+  var vals=board.blanks.map(function(b){return board.cells[b];});
+  var order=vals.map(function(_,i){return i;});
+  for(var i=order.length-1;i>0;i--){var j=(rng()*(i+1))|0;var t=order[i];order[i]=order[j];order[j]=t;}
+  state={placed:{},sel:null,fails:0,tileOrder:order};
+  render();
+}
+
+function isBlank(c){return board.blanks.indexOf(c)>=0;}
+
+function render(){
+  var bw=$("board");bw.innerHTML="";
+  var rows=[[0,1,2,"across",0],[3,4,5,"across",1],[6,7,8,"across",2]];
+  rows.forEach(function(r){
+    var gr=document.createElement("div");gr.className="grow";
+    [0,1,2].forEach(function(k){
+      var c=r[k];
+      var d=document.createElement("div");
+      if(isBlank(c)){
+        var ti=state.placed[c];
+        d.className="cell blank"+(ti!=null?" filled":"")+(state.sel!=null&&ti==null?" target":"");
+        d.textContent=ti!=null?tileValue(ti):"";
+        d.addEventListener("click",function(){tapBlank(c);});
+      }else{
+        d.className="cell given";d.textContent=board.cells[c];
+      }
+      gr.appendChild(d);
+      if(k<2){var b1=document.createElement("div");b1.className="badge";b1.textContent=board.ops[r[3]][r[4]];gr.appendChild(b1);}
+      else if(k===2){/* result cell already added */}
+      if(k===1){/* between cell1 and result */}
+    });
+    /* row layout: cell0 [op] cell1 [eq] cell2 - rebuild properly */
+    gr.innerHTML="";
+    [0,1,2].forEach(function(k){
+      var c=r[k];
+      var d=document.createElement("div");
+      if(isBlank(c)){
+        var ti=state.placed[c];
+        d.className="cell blank"+(ti!=null?" filled":"")+(state.sel!=null&&ti==null?" target":"");
+        d.textContent=ti!=null?tileValue(ti):"";
+        d.addEventListener("click",function(){tapBlank(c);});
+      }else{
+        d.className="cell given";d.textContent=board.cells[c];
+      }
+      gr.appendChild(d);
+      if(k===0){var bo=document.createElement("div");bo.className="badge";bo.textContent=board.ops[r[3]][r[4]];gr.appendChild(bo);}
+      if(k===1){var be=document.createElement("div");be.className="badge eq";be.textContent="=";gr.appendChild(be);}
+    });
+    bw.appendChild(gr);
+  });
+  /* operator rows between grid rows: down-op badge under each column */
+  var grows=bw.querySelectorAll(".grow");
+  for(var ri=0;ri<2;ri++){
+    var orow=document.createElement("div");orow.className="grow";
+    for(var c2=0;c2<3;c2++){
+      var dc=document.createElement("div");dc.className="downcol";
+      var b=document.createElement("div");b.className="badge";b.textContent=board.ops.down[c2];
+      dc.appendChild(b);orow.appendChild(dc);
+      if(c2<2){var sp=document.createElement("div");sp.className="bspacer";orow.appendChild(sp);}
+    }
+    bw.insertBefore(orow,grows[ri].nextSibling);
+  }
+  var tr=$("tray");tr.innerHTML="";
+  state.tileOrder.forEach(function(ti){
+    var d=document.createElement("div");
+    var used=Object.keys(state.placed).some(function(c){return state.placed[c]===ti;});
+    d.className="tile"+(used?" used":"")+(state.sel===ti?" sel":"");
+    d.textContent=tileValue(ti);
+    d.addEventListener("click",function(){tapTile(ti);});
+    tr.appendChild(d);
+  });
+  $("streak").textContent=store.streak||0;
+}
+
+function tileValue(ti){return board.cells[board.blanks[ti]];}
+
+function eqState(){
+  var assign=board.cells.slice();
+  Object.keys(state.placed).forEach(function(c){assign[c]=tileValue(state.placed[c]);});
+  var good=0,bad=0;
+  EQS.forEach(function(e){
+    var v=applyOp(board.ops[e[3]][e[4]],assign[e[0]],assign[e[1]]);
+    if(v===assign[e[2]])good++;else bad++;
+  });
+  return{good:good,bad:bad};
+}
+
+function tapTile(ti){
+  var used=Object.keys(state.placed).some(function(c){return state.placed[c]===ti;});
+  if(used)return;
+  state.sel=state.sel===ti?null:ti;
+  render();
+}
+
+function tapBlank(c){
+  var ti=state.placed[c];
+  if(ti!=null){delete state.placed[c];state.sel=ti;render();return;}
+  if(state.sel==null){toast("Pick a tile from the box first");return;}
+  state.placed[c]=state.sel;state.sel=null;
+  render();
+  if(Object.keys(state.placed).length===board.blanks.length){
+    var es=eqState();
+    if(es.bad===0){finish();}
+    else{
+      state.fails++;
+      toast(es.good+" of 6 equations check out - rearrange and try again");
+    }
+  }
+}
+
+function clearPlaced(){state.placed={};state.sel=null;render();}
+
+function checkNow(){
+  var n=Object.keys(state.placed).length;
+  if(n<board.blanks.length){toast((board.blanks.length-n)+" tile"+(board.blanks.length-n===1?"":"s")+" still in the box");return;}
+  var es=eqState();
+  if(es.bad===0){finish();}
+  else{state.fails++;toast(es.good+" of 6 equations check out");}
+}
+
+function fmt(ms){var s=Math.floor(ms/1000);return Math.floor(s/60)+":"+("0"+(s%60)).slice(-2);}
+
+function finish(){
+  var day=dayNumber();
+  var stars=state.fails===0?3:(state.fails<=2?2:1);
+  if(!practice){
+    if(store.lastSolved!==day){
+      store.streak=(store.lastSolved===day-1)?(store.streak||0)+1:1;
+      store.lastSolved=day;
+      store["stars_"+day]=stars;
+      save();
+    }
+  }
+  $("streak").textContent=store.streak||0;
+  $("modal-title").textContent=practice?"Practice grid complete":"Grid complete";
+  $("stars").innerHTML="";
+  for(var i=0;i<3;i++){var s=document.createElement("span");s.textContent="\u2605";if(i>=stars)s.className="off";$("stars").appendChild(s);}
+  $("modal-stats").innerHTML="Retries: <b>"+state.fails+"</b> &middot; Time: <b>"+fmt(Date.now()-t0)+"</b>"+(practice?"":" &middot; Streak: <b>"+(store.streak||1)+"</b>");
+  $("next").textContent=practice?"":"A new grid lands at midnight.";
+  $("daily-btn").style.display=practice?"":"none";
+  $("modal-wrap").classList.add("show");
+}
+
+function toast(msg){
+  var t=$("toast");t.textContent=msg;t.classList.add("show");
+  clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove("show");},1800);
+}
+
+$("clear").addEventListener("click",clearPlaced);
+$("check").addEventListener("click",checkNow);
+$("more-btn").addEventListener("click",function(){
+  practice=1;state=null;$("modal-wrap").classList.remove("show");t0=Date.now();newBoard();
+  $("puzzle-num").textContent="practice";
+});
+$("daily-btn").addEventListener("click",function(){
+  practice=0;state=null;$("modal-wrap").classList.remove("show");t0=Date.now();newBoard();
+  $("puzzle-num").textContent=dayNumber();
+});
+$("share-btn").addEventListener("click",function(){
+  var day=dayNumber(),stars=state.fails===0?3:(state.fails<=2?2:1);
+  var txt=(practice?"Math Cross practice":"Math Cross #"+day)+" - "+stars+"/3 stars, "+state.fails+" retries";
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt);toast("Copied - paste it anywhere");}
+  else{toast(txt);}
+});
+
+$("puzzle-num").textContent=dayNumber();
+if(store.lastSolved===dayNumber()){$("tagline").textContent="Today's grid is cleared - practice below, or come back tomorrow.";$("practice-btn").style.display="";}
+$("practice-btn").addEventListener("click",function(){practice=1;state=null;t0=Date.now();newBoard();$("puzzle-num").textContent="practice";});
+newBoard();
+/*LOGIC_END*/
+</script>
+</body>
+</html>
