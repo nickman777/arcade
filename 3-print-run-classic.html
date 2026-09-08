@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0a0d13">
+<title>Print Run</title>
+<style>
+  :root{
+    --bg:#0a0d13; --panel:#131824; --line:#232b3d; --text:#e9ecf2; --dim:#8b93a7;
+    --orange:#f26522; --green:#3ddc84; --red:#ff5252; --gold:#ffd166;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    overscroll-behavior:none; user-select:none; -webkit-user-select:none; touch-action:manipulation;}
+  #app{max-width:430px;margin:0 auto;padding:10px 10px calc(14px + env(safe-area-inset-bottom)) 10px;
+    display:flex;flex-direction:column;gap:8px;min-height:100dvh;}
+  header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:2px 2px 0 2px;}
+  .brand{font-weight:800;font-size:21px;letter-spacing:1.5px;line-height:1;}
+  .brand span{color:var(--orange);}
+  .brand .sub{font-weight:600;font-size:10px;letter-spacing:2.5px;color:var(--dim);margin-top:3px;}
+  .hud{text-align:right;}
+  .money{font-size:21px;font-weight:800;color:var(--green);line-height:1;}
+  .money.pop{animation:pop .35s;}
+  .hudrow{font-size:11px;color:var(--dim);margin-top:3px;display:flex;gap:6px;justify-content:flex-end;align-items:center;}
+  .misses i{display:inline-block;width:8px;height:8px;border-radius:50%;border:1.5px solid #3a4356;margin-left:3px;vertical-align:middle;}
+  .misses i.hit{background:var(--red);border-color:var(--red);}
+  .lbl{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--dim);display:flex;align-items:center;justify-content:space-between;padding:0 2px;}
+  .lbl .hint{font-weight:500;letter-spacing:.4px;text-transform:none;color:#5b6478;}
+  #orders{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px 2px;min-height:118px;scroll-snap-type:x proximity;}
+  #orders::-webkit-scrollbar{display:none;}
+  .order{flex:0 0 auto;width:152px;background:var(--panel);border:1.5px solid var(--line);border-radius:12px;
+    padding:7px 9px 9px 9px;scroll-snap-align:start;position:relative;transition:border-color .15s, box-shadow .15s;}
+  .order.sel{border-color:var(--orange);box-shadow:0 0 0 1px var(--orange),0 4px 18px rgba(242,101,34,.28);}
+  .o-top{display:flex;justify-content:space-between;align-items:baseline;gap:4px;}
+  .o-name{font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .o-pay{font-size:13px;font-weight:800;color:var(--green);margin-right:24px;}
+  .o-fil{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--dim);margin-top:4px;}
+  .o-fil i{width:11px;height:11px;border-radius:50%;border:1px solid rgba(255,255,255,.35);flex:0 0 auto;}
+  .o-meta{font-size:10.5px;color:var(--dim);margin-top:4px;display:flex;justify-content:space-between;align-items:center;}
+  .brim{font-size:9.5px;font-weight:800;letter-spacing:1px;padding:3px 7px;border-radius:20px;border:1.5px solid #3a4356;
+    background:transparent;color:var(--dim);margin-top:6px;}
+  .brim.on{border-color:var(--orange);color:var(--orange);background:rgba(242,101,34,.12);}
+  .brim.advise{animation:pulse 1s infinite;}
+  .decline{position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:50%;border:1.5px solid #3a4356;
+    background:transparent;color:#5b6478;font-size:10px;font-weight:800;line-height:1;padding:0;}
+  .decline:active{border-color:var(--red);color:var(--red);}
+  .o-bar{height:5px;background:#0d1119;border-radius:3px;margin-top:7px;overflow:hidden;}
+  .o-bar b{display:block;height:100%;background:var(--green);border-radius:3px;}
+  .o-bar.mid b{background:var(--gold);}
+  .o-bar.low b{background:var(--red);animation:pulse .6s infinite;}
+  .empty{color:#4a5468;font-size:12px;padding:38px 12px;width:100%;text-align:center;}
+  #farmWrap{position:relative;}
+  #farm{display:block;width:100%;border-radius:14px;background:linear-gradient(180deg,#0e1220,#0a0d13);border:1.5px solid var(--line);}
+  #shopBtn{font-size:11px;font-weight:800;letter-spacing:1px;color:var(--orange);background:rgba(242,101,34,.1);
+    border:1.5px solid rgba(242,101,34,.5);border-radius:20px;padding:5px 11px;}
+  #shopBtn:active{transform:scale(.95);}
+  .overlay{position:fixed;inset:0;background:rgba(4,6,10,.72);display:flex;align-items:flex-end;justify-content:center;z-index:50;}
+  .overlay.hidden{display:none;}
+  .sheet{width:100%;max-width:430px;background:#10141f;border:1.5px solid var(--line);border-bottom:none;
+    border-radius:18px 18px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom)) 16px;max-height:76dvh;overflow-y:auto;}
+  .sheet h2{margin:0 0 2px 0;font-size:17px;letter-spacing:1px;}
+  .sheet .note{font-size:11px;color:var(--dim);margin-bottom:12px;}
+  .uprow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 2px;border-top:1px solid #1b2233;}
+  .uprow .u-name{font-size:13.5px;font-weight:700;}
+  .uprow .u-desc{font-size:11px;color:var(--dim);margin-top:2px;}
+  .buy{flex:0 0 auto;font-size:12px;font-weight:800;color:#0a0d13;background:var(--orange);border:none;border-radius:9px;padding:8px 12px;min-width:66px;}
+  .buy:disabled{background:#2a3143;color:#5b6478;}
+  .buy.owned{background:#1d2b22;color:var(--green);}
+  .closeBtn{width:100%;margin-top:14px;padding:12px;border-radius:12px;border:1.5px solid var(--line);background:transparent;color:var(--text);font-size:13px;font-weight:700;}
+  #overOverlay{align-items:center;}
+  #overOverlay .sheet{border-radius:18px;border-bottom:1.5px solid var(--line);text-align:center;margin:0 18px;}
+  #overOverlay h2{font-size:22px;letter-spacing:2px;margin-bottom:6px;}
+  #overOverlay .final{font-size:34px;font-weight:800;color:var(--green);margin:8px 0 2px 0;}
+  #overOverlay .best{font-size:12px;color:var(--gold);margin-bottom:6px;}
+  #overOverlay .stat-line{font-size:12px;color:var(--dim);margin-bottom:14px;}
+  #again{width:100%;padding:13px;border-radius:12px;border:none;background:var(--orange);color:#0a0d13;font-size:15px;font-weight:800;letter-spacing:1px;}
+  #toasts{position:fixed;top:calc(10px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:60;
+    display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;width:100%;max-width:430px;}
+  .toast{background:rgba(19,24,36,.95);border:1.5px solid var(--line);color:var(--text);font-size:12.5px;font-weight:600;
+    padding:8px 14px;border-radius:22px;animation:toastIn .25s ease-out;box-shadow:0 6px 20px rgba(0,0,0,.5);}
+  .toast.bad{border-color:var(--red);color:#ffb3b3;}
+  .toast.good{border-color:var(--green);color:#b7f5d4;}
+  .toast.fade{opacity:0;transition:opacity .4s;}
+  @keyframes toastIn{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes pulse{50%{opacity:.45;}}
+  @keyframes pop{50%{transform:scale(1.18);}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">PRINT<span>RUN</span><div class="sub">PRINTYFRESH FARMS</div></div>
+    <div class="hud">
+      <div class="money" id="money">$0</div>
+      <div class="hudrow"><span id="clock">0:00</span><span class="misses" id="misses"><i></i><i></i><i></i></span><span>BEST <b id="high" style="color:var(--gold)">$0</b></span></div>
+    </div>
+  </header>
+  <div class="lbl">ORDERS <span class="hint" id="hint">tap an order, then tap a printer</span></div>
+  <div id="orders"></div>
+  <div class="lbl">THE FARM <button id="shopBtn">🛠 UPGRADES</button></div>
+  <div id="farmWrap"><canvas id="farm"></canvas></div>
+</div>
+<div id="toasts"></div>
+<div id="shopOverlay" class="overlay hidden"><div class="sheet" id="shopSheet"></div></div>
+<div id="overOverlay" class="overlay hidden"><div class="sheet">
+  <h2>SHIFT OVER</h2>
+  <div class="stat-line" id="overReason">The farm has seen better days.</div>
+  <div class="final" id="finalEarn">$0</div>
+  <div class="best" id="bestLine"></div>
+  <div class="stat-line" id="overStats"></div>
+  <button id="again">RUN IT BACK</button>
+</div></div>
+<script>
+/*LOGIC-START*/
+const LOGIC = (() => {
+  const FILAMENTS = [
+    {id:'white', name:'White', hex:'#eef1f4', w:3},
+    {id:'black', name:'Black', hex:'#2a2e37', w:3},
+    {id:'orange', name:'Bears Orange', hex:'#f26522', w:3},
+    {id:'navy', name:'Navy', hex:'#3d5a99', w:2},
+    {id:'red', name:'Red', hex:'#e03131', w:2},
+    {id:'green', name:'Green', hex:'#37b24d', w:2},
+    {id:'purple', name:'Purple', hex:'#9775fa', w:1},
+    {id:'pink', name:'Pink', hex:'#f783ac', w:1},
+  ];
+  const ITEMS = [
+    {name:'Benchy', emoji:'🚤', fail:.06, dur:[16,22], pay:[9,13]},
+    {name:'Flexi Cat', emoji:'🐱', fail:.10, dur:[20,28], pay:[12,16]},
+    {name:'Gridfinity Bin', emoji:'🧰', fail:.08, dur:[22,30], pay:[13,17]},
+    {name:'Cookie Cutter', emoji:'🍪', fail:.05, dur:[14,20], pay:[9,12]},
+    {name:'Phone Stand', emoji:'📱', fail:.09, dur:[24,32], pay:[15,19]},
+    {name:'Planter', emoji:'🪴', fail:.07, dur:[20,26], pay:[12,16]},
+    {name:'Flexi Dragon', emoji:'🐉', fail:.16, dur:[30,40], pay:[22,30], tricky:true},
+    {name:'Vase', emoji:'🏺', fail:.08, dur:[26,34], pay:[16,20]},
+    {name:'Gear Assembly', emoji:'⚙️', fail:.12, dur:[24,32], pay:[17,22]},
+    {name:'Piggy Bank', emoji:'🐷', fail:.09, dur:[26,34], pay:[18,24]},
+    {name:'Voron Cube', emoji:'🧊', fail:.05, dur:[12,16], pay:[8,11]},
+    {name:'Mini Toews', emoji:'🐈', fail:.14, dur:[28,36], pay:[22,28], tricky:true},
+  ];
+  const QUEUE_MAX = 5, SWAP_MS = 6000, SWAP_AMS_MS = 2000, CLEAN_MS = 1800, MAX_STRIKES = 3;
+  const COST = { ams:80, nozzle:60, printer2:120, printer3:250 };
+
+  function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+  const R=(s,a,b)=>a+s.rng()*(b-a);
+  const Ri=(s,a,b)=>Math.floor(R(s,a,b+1));
+  function pickWeighted(s, arr){ let tot=0; for(const x of arr) tot+=x.w||1; let r=s.rng()*tot; for(const x of arr){ r-=x.w||1; if(r<=0) return x;} return arr[arr.length-1]; }
+  function newPrinter(name, star){ return {name, star:!!star, color:'white', ams:false, nozzle:0, phase:'idle', job:null, cleanT:0, messColor:null}; }
+  function createGame(seed){
+    const rng = mulberry32((seed>>>0)||1);
+    return { rng, t:0, money:35, earned:0, printed:0, strikes:0, over:false,
+      orders:[], nextOrderId:1, spawnIn:2000,
+      printers:[ newPrinter('PrintyFresh', true) ] };
+  }
+  function spawnInterval(s){ return Math.max(3200, 14000 - (s.t/1000)*25); }
+  function payMult(s){ return 1 + (s.t/60000)*0.12; }
+  function patienceMult(s){ return Math.max(0.55, 1 - s.t/600000); }
+  function itemOf(name){ return ITEMS.find(i=>i.name===name); }
+  function makeOrder(s){
+    const item = ITEMS[Ri(s,0,ITEMS.length-1)];
+    const fil = pickWeighted(s, FILAMENTS);
+    const dur = R(s,item.dur[0],item.dur[1])*1000;
+    const pay = Math.round(R(s,item.pay[0],item.pay[1])*payMult(s));
+    const patience = (42000 + s.rng()*15000) * patienceMult(s);
+    return { id:s.nextOrderId++, item:item.name, emoji:item.emoji, fail:item.fail, tricky:!!item.tricky,
+      color:fil.id, pay, dur, patience, patienceMax:patience, brim:false };
+  }
+  function riskOf(o){ return o.fail<0.08?1:o.fail<0.13?2:3; }
+  function assign(s, orderId, pi){
+    if(s.over) return {ok:false, reason:'over'};
+    const p = s.printers[pi]; if(!p) return {ok:false, reason:'no-printer'};
+    if(p.phase!=='idle') return {ok:false, reason:'busy'};
+    const ix = s.orders.findIndex(o=>o.id===orderId); if(ix<0) return {ok:false, reason:'no-order'};
+    const o = s.orders.splice(ix,1)[0];
+    const effFail = o.fail * (o.brim?0.35:1) * (p.nozzle?0.55:1);
+    let failAt = null;
+    if(s.rng() < effFail) failAt = 0.04 + s.rng()*0.45;
+    const swapDur = o.color===p.color ? 0 : (p.ams?SWAP_AMS_MS:SWAP_MS);
+    const dur = o.dur * (o.brim?1.18:1);
+    p.job = { order:o, phase: swapDur>0?'swap':'print', t:0, swapDur, dur, failAt };
+    p.phase = swapDur>0 ? 'swap' : 'print';
+    return {ok:true, swapDur, dur, failAt};
+  }
+  function clean(s, pi){ const p=s.printers[pi]; if(!p||p.phase!=='spaghetti') return false; p.phase='cleaning'; p.cleanT=CLEAN_MS; p.job=null; return true; }
+  function decline(s, orderId){ const ix=s.orders.findIndex(o=>o.id===orderId); if(ix<0) return false; s.orders.splice(ix,1); return true; }
+  function toggleBrim(s, orderId){ const o=s.orders.find(o=>o.id===orderId); if(!o) return false; o.brim=!o.brim; return true; }
+  function buy(s, what){
+    if(what==='printer2'||what==='printer3'){
+      const cost=COST[what]; const n = what==='printer2'?2:3;
+      if(s.printers.length>=n||s.money<cost) return false;
+      s.money-=cost; s.printers.push(newPrinter('PrintyFresh '+n,false)); return true;
+    }
+    return false;
+  }
+  function buyFor(s, pi, what){
+    const p=s.printers[pi]; if(!p) return false;
+    const cost=COST[what]; if(s.money<cost) return false;
+    if(what==='ams' && !p.ams){ s.money-=cost; p.ams=true; return true; }
+    if(what==='nozzle' && !p.nozzle){ s.money-=cost; p.nozzle=1; return true; }
+    return false;
+  }
+  function strike(s, events, kind, data){ s.strikes++; events.push(Object.assign({type:kind},data)); if(s.strikes>=MAX_STRIKES && !s.over){ s.over=true; events.push({type:'gameover'}); } }
+  function tick(s, dt){
+    const events=[]; if(s.over) return events;
+    s.t += dt;
+    s.spawnIn -= dt;
+    while(s.spawnIn<=0){
+      if(s.orders.length<QUEUE_MAX){ const o=makeOrder(s); s.orders.push(o); events.push({type:'spawn', order:o}); }
+      s.spawnIn += spawnInterval(s);
+    }
+    for(let i=s.orders.length-1;i>=0;i--){
+      const o=s.orders[i]; o.patience-=dt;
+      if(o.patience<=0){ s.orders.splice(i,1); strike(s,events,'expired',{order:o}); }
+    }
+    s.printers.forEach((p,pi)=>{
+      if(p.phase==='swap' && p.job){
+        p.job.t+=dt;
+        if(p.job.t>=p.job.swapDur){ p.color=p.job.order.color; p.job.phase='print'; p.job.t=0; p.phase='print'; events.push({type:'swapped', printer:pi, color:p.color}); }
+      } else if(p.phase==='print' && p.job){
+        p.job.t+=dt;
+        const frac=p.job.t/p.job.dur;
+        if(p.job.failAt!=null && frac>=p.job.failAt){
+          p.phase='spaghetti'; p.messColor=p.job.order.color;
+          strike(s,events,'spaghetti',{printer:pi, order:p.job.order});
+          p.job=null;
+        } else if(frac>=1){
+          const o=p.job.order; s.money+=o.pay; s.earned+=o.pay; s.printed++;
+          p.job=null; p.phase='idle'; events.push({type:'complete', printer:pi, order:o});
+        }
+      } else if(p.phase==='cleaning'){
+        p.cleanT-=dt; if(p.cleanT<=0){ p.phase='idle'; p.messColor=null; events.push({type:'cleaned', printer:pi}); }
+      }
+    });
+    return events;
+  }
+  return {FILAMENTS, ITEMS, QUEUE_MAX, SWAP_MS, SWAP_AMS_MS, CLEAN_MS, MAX_STRIKES, COST, mulberry32, newPrinter, createGame,
+    spawnInterval, payMult, patienceMult, itemOf, makeOrder, riskOf, assign, clean, decline, toggleBrim, buy, buyFor, tick};
+})();
+/*LOGIC-END*/
+</script>
+<script>
+(() => {
+const L = LOGIC;
+const HIGH_KEY='printrun.high';
+const $=id=>document.getElementById(id);
+const filById=id=>L.FILAMENTS.find(f=>f.id===id);
+const fmtT=ms=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
+
+let high=0; try{ high=+(localStorage.getItem(HIGH_KEY)||0); }catch(e){}
+function saveHigh(v){ high=Math.max(high,v); try{ localStorage.setItem(HIGH_KEY,String(high)); }catch(e){} }
+
+let state, selectedId=null, ordersDirty=true, hudDirty=true, shopDirty=true;
+let orderRefs={}, PAUSED=false;
+
+/* ---------- sound ---------- */
+let AC=null;
+function ac(){ if(!AC){ try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){} } if(AC&&AC.state==='suspended')AC.resume(); return AC; }
+function tone(f,d,type,g,delay){ const c=ac(); if(!c)return;
+  const o=c.createOscillator(), v=c.createGain(); o.type=type||'sine'; o.frequency.value=f;
+  const t0=c.currentTime+(delay||0);
+  v.gain.setValueAtTime(g||0.06,t0); v.gain.exponentialRampToValueAtTime(0.0001,t0+d);
+  o.connect(v).connect(c.destination); o.start(t0); o.stop(t0+d+0.03); }
+const sfx={
+  tap(){tone(420,.05,'triangle',.04);},
+  assign(){tone(500,.07,'square',.05);tone(700,.06,'square',.04,.06);},
+  spawn(){tone(340,.05,'sine',.028);},
+  cash(){tone(880,.09,'sine',.07);tone(1318,.16,'sine',.07,.09);},
+  fail(){tone(200,.22,'sawtooth',.08);tone(95,.4,'sawtooth',.08,.1);},
+  expire(){tone(170,.18,'square',.055);},
+  buy(){tone(660,.08,'triangle',.06);tone(990,.12,'triangle',.06,.07);},
+  swap(){tone(260,.05,'square',.04);tone(390,.05,'square',.04,.05);}
+};
+document.addEventListener('pointerdown',()=>ac(),{once:true});
+
+/* ---------- toasts ---------- */
+function toast(msg,cls){
+  const el=document.createElement('div'); el.className='toast'+(cls?' '+cls:''); el.textContent=msg;
+  const box=$('toasts'); box.appendChild(el);
+  while(box.children.length>3) box.firstChild.remove();
+  setTimeout(()=>el.classList.add('fade'),1800); setTimeout(()=>el.remove(),2300);
+}
+
+/* ---------- canvas farm ---------- */
+const cv=$('farm'), ctx=cv.getContext('2d');
+let CW=0, CH=208, DPR=1, printerRects=[];
+function sizeCanvas(){
+  DPR=Math.min(2,window.devicePixelRatio||1);
+  const w=cv.clientWidth||380;
+  const top=cv.getBoundingClientRect().top||430;
+  CH = Math.max(210, Math.min(470, (window.innerHeight||700) - top - 16));
+  CW=w;
+  cv.width=w*DPR; cv.height=CH*DPR; cv.style.height=CH+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+
+let particles=[];
+function burst(x,y,color,n){
+  for(let i=0;i<(n||14);i++){
+    const a=Math.random()*Math.PI*2, sp=1+Math.random()*2.4;
+    particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-1.2,life:1,color,r:1.5+Math.random()*2});
+  }
+}
+function floatText(x,y,text,color){ particles.push({x,y,vx:0,vy:-0.55,life:1.6,text,color}); }
+function stepParticles(dt){
+  const k=dt/16.7;
+  for(let i=particles.length-1;i>=0;i--){ const p=particles[i];
+    p.x+=p.vx*k; p.y+=p.vy*k; if(!p.text)p.vy+=0.06*k; p.life-=0.022*k;
+    if(p.life<=0) particles.splice(i,1);
+  }
+}
+function drawParticles(){
+  for(const p of particles){ ctx.globalAlpha=Math.min(1,p.life);
+    if(p.text){ ctx.fillStyle=p.color; ctx.font='800 15px -apple-system,sans-serif'; ctx.textAlign='center'; ctx.fillText(p.text,p.x,p.y); }
+    else { ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fill(); }
+  }
+  ctx.globalAlpha=1;
+}
+
+function drawPrinter(p, x, y, w, h, now){
+  const fil=filById(p.color);
+  const pad=8, ix=x+pad, iw=w-pad*2;
+  const enclY=y+22, enclH=h-22-40;
+  // armed highlight
+  const armed = selectedId!=null && p.phase==='idle' && !state.over;
+  if(armed){ const a=.35+.25*Math.sin(now/180); ctx.strokeStyle='rgba(242,101,34,'+a.toFixed(2)+')'; ctx.lineWidth=2.5; ctx.setLineDash([6,5]); rr(x+2,y+2,w-4,h-4,12); ctx.stroke(); ctx.setLineDash([]); }
+  // nameplate
+  ctx.textAlign='left'; ctx.font='800 11px -apple-system,sans-serif'; ctx.fillStyle='#e9ecf2';
+  ctx.fillText((p.star?'⭐ ':'')+p.name, ix, y+13);
+  // badges
+  let bx=ix+ctx.measureText((p.star?'⭐ ':'')+p.name).width+6;
+  ctx.font='700 8px -apple-system,sans-serif';
+  if(p.ams){ ctx.fillStyle='#f26522'; ctx.fillText('AMS',bx,y+13); bx+=22; }
+  if(p.nozzle){ ctx.fillStyle='#3ddc84'; ctx.fillText('NOZ+',bx,y+13); }
+  // enclosure
+  ctx.fillStyle='rgba(19,24,36,.9)'; rr(ix,enclY,iw,enclH,8); ctx.fill();
+  ctx.strokeStyle='#232b3d'; ctx.lineWidth=1.5; rr(ix,enclY,iw,enclH,8); ctx.stroke();
+  const bedY=enclY+enclH-14, cx=ix+iw/2;
+  // exhaust fan
+  const fanSpd = p.phase==='print' ? now/90 : now/600;
+  ctx.strokeStyle='#3a4356'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.arc(ix+16,enclY+15,8,0,7); ctx.stroke();
+  for(let k=0;k<3;k++){ const a0=fanSpd+k*2.1; ctx.beginPath(); ctx.moveTo(ix+16,enclY+15);
+    ctx.arc(ix+16,enclY+15,6,a0,a0+0.9); ctx.closePath();
+    ctx.fillStyle='rgba(90,100,120,'+(p.phase==='print'?'0.8':'0.35')+')'; ctx.fill(); }
+  // spool (top-right)
+  const spX=ix+iw-15, spY=enclY+13;
+  const spoolColor = (p.phase==='swap'&&p.job) ? filById(p.job.order.color) : fil;
+  ctx.fillStyle=spoolColor.hex; ctx.beginPath(); ctx.arc(spX,spY,9,0,7); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=1; ctx.stroke();
+  ctx.fillStyle='#0a0d13'; ctx.beginPath(); ctx.arc(spX,spY,3,0,7); ctx.fill();
+  if(p.phase==='swap'){ const a=.4+.4*Math.sin(now/130); ctx.strokeStyle='rgba(242,101,34,'+a+')'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(spX,spY,12,0,7); ctx.stroke(); }
+  if(p.phase==='print'){ // spool spin dashes
+    ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.lineWidth=1;
+    for(let k=0;k<3;k++){ const a0=now/300+k*2.1; ctx.beginPath(); ctx.arc(spX,spY,6,a0,a0+1); ctx.stroke(); }
+  }
+  if(p.phase==='spaghetti'){
+    // scribble mess
+    const mc=filById(p.messColor||'orange');
+    ctx.strokeStyle=mc.hex; ctx.lineWidth=2; ctx.lineCap='round';
+    const seed=(p.name.length*7+3);
+    for(let s=0;s<4;s++){
+      ctx.beginPath();
+      let px=cx-26+((seed*(s+3))%20), py=bedY-2;
+      ctx.moveTo(px,py);
+      for(let k=0;k<6;k++){ px+=((seed*(k+2)+s*13)%23)-11+Math.sin(k*2+s)*8; py-=3+((seed+k*7+s)%9); ctx.lineTo(px,py); }
+      ctx.stroke();
+    }
+    ctx.font='22px -apple-system,sans-serif'; ctx.textAlign='center'; ctx.fillText('🍝',cx,enclY+30);
+    ctx.font='800 10px -apple-system,sans-serif'; ctx.fillStyle='#ff5252';
+    const a=.5+.5*Math.sin(now/150); ctx.globalAlpha=.6+.4*a;
+    ctx.fillText('SPAGHETTI!',cx,enclY+enclH-4); ctx.globalAlpha=1;
+  } else if(p.phase==='cleaning'){
+    const frac=1-p.cleanT/L.CLEAN_MS;
+    ctx.strokeStyle='#3ddc84'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(cx,bedY-24,13,-Math.PI/2,-Math.PI/2+frac*Math.PI*2); ctx.stroke();
+    ctx.font='14px -apple-system,sans-serif'; ctx.textAlign='center'; ctx.fillText('🧽',cx,bedY-19);
+  } else if(p.job && p.phase==='print'){
+    const frac=Math.min(1,p.job.t/p.job.dur);
+    const col=filById(p.job.order.color);
+    // object: growing layers
+    const layers=Math.floor(frac*11), maxW=Math.min(44,iw*.42);
+    ctx.fillStyle=col.hex;
+    for(let li=0;li<layers;li++){
+      const lw=maxW*(0.72+0.28*Math.sin(li*1.7+p.job.order.id));
+      ctx.fillRect(cx-lw/2, bedY-3-li*3.4, lw, 3);
+    }
+    const objH=layers*3.4;
+    // gantry
+    const gy=Math.max(enclY+10, bedY-6-objH-9);
+    ctx.strokeStyle='#3a4356'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(ix+8,enclY+8); ctx.lineTo(ix+8,bedY+2); ctx.moveTo(ix+iw-8,enclY+8); ctx.lineTo(ix+iw-8,bedY+2); ctx.stroke();
+    ctx.strokeStyle='#5b6478'; ctx.beginPath(); ctx.moveTo(ix+6,gy); ctx.lineTo(ix+iw-6,gy); ctx.stroke();
+    // extruder
+    const ex=cx+Math.sin(now/260+p.job.order.id)*Math.max(6,(iw/2-22));
+    ctx.fillStyle='#39415a'; rr(ex-8,gy-5,16,10,2); ctx.fill();
+    ctx.fillStyle='#f26522'; ctx.beginPath(); ctx.moveTo(ex-3,gy+5); ctx.lineTo(ex+3,gy+5); ctx.lineTo(ex,gy+11); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='rgba(242,101,34,.85)'; ctx.beginPath(); ctx.arc(ex,gy+12,1.6+Math.sin(now/90)*0.7,0,7); ctx.fill();
+    // emoji when nearly done
+    if(frac>0.97){ ctx.font='15px -apple-system,sans-serif'; ctx.textAlign='center'; ctx.fillText(p.job.order.emoji,cx,bedY-objH-6); }
+  } else if(p.job && p.phase==='swap'){
+    const frac=Math.min(1,p.job.t/p.job.swapDur);
+    ctx.textAlign='center'; ctx.font='800 10px -apple-system,sans-serif'; ctx.fillStyle='#8b93a7';
+    ctx.fillText('SWAPPING FILAMENT',cx,bedY-30);
+    ctx.fillStyle='#232b3d'; rr(cx-30,bedY-24,60,5,2.5); ctx.fill();
+    ctx.fillStyle='#f26522'; rr(cx-30,bedY-24,60*frac,5,2.5); ctx.fill();
+    // gantry parked
+    ctx.strokeStyle='#3a4356'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(ix+8,enclY+8); ctx.lineTo(ix+8,bedY+2); ctx.moveTo(ix+iw-8,enclY+8); ctx.lineTo(ix+iw-8,bedY+2); ctx.stroke();
+    ctx.strokeStyle='#5b6478'; ctx.beginPath(); ctx.moveTo(ix+6,enclY+12); ctx.lineTo(ix+iw-6,enclY+12); ctx.stroke();
+  } else {
+    // idle
+    ctx.strokeStyle='#2a3143'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(ix+8,enclY+8); ctx.lineTo(ix+8,bedY+2); ctx.moveTo(ix+iw-8,enclY+8); ctx.lineTo(ix+iw-8,bedY+2); ctx.stroke();
+    ctx.strokeStyle='#39415a'; ctx.beginPath(); ctx.moveTo(ix+6,enclY+12); ctx.lineTo(ix+iw-6,enclY+12); ctx.stroke();
+    ctx.textAlign='center'; ctx.font='700 9.5px -apple-system,sans-serif'; ctx.fillStyle='#4a5468';
+    ctx.fillText(armed?'TAP TO ASSIGN':'IDLE',cx,bedY-26);
+  }
+  // bed line
+  ctx.strokeStyle='#39415a'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(ix+10,bedY); ctx.lineTo(ix+iw-10,bedY); ctx.stroke();
+  // filament chip (current loaded)
+  ctx.textAlign='left'; ctx.font='600 9px -apple-system,sans-serif';
+  ctx.fillStyle=fil.hex; ctx.beginPath(); ctx.arc(ix+5,y+h-27,4,0,7); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,.3)'; ctx.lineWidth=1; ctx.stroke();
+  ctx.fillStyle='#8b93a7'; ctx.fillText(fil.name+' PLA',ix+13,y+h-23);
+  // status + progress (bottom strip)
+  const statY=y+h-23;
+  let frac=0, stat='IDLE', statCol='#4a5468';
+  if(p.phase==='print'&&p.job){ frac=Math.min(1,p.job.t/p.job.dur); stat=Math.floor(frac*100)+'% · '+Math.ceil((p.job.dur-p.job.t)/1000)+'s'; statCol=filById(p.job.order.color).hex; }
+  else if(p.phase==='swap'&&p.job){ frac=Math.min(1,p.job.t/p.job.swapDur); stat='swap '+Math.ceil((p.job.swapDur-p.job.t)/1000)+'s'; statCol='#f26522'; }
+  else if(p.phase==='cleaning'){ frac=1-p.cleanT/L.CLEAN_MS; stat='cleaning'; statCol='#3ddc84'; }
+  else if(p.phase==='spaghetti'){ frac=1; stat='tap to clean'; statCol='#ff5252'; }
+  ctx.fillStyle='#0d1119'; rr(ix,y+h-13,iw,6,3); ctx.fill();
+  if(frac>0){ ctx.fillStyle=statCol; rr(ix,y+h-13,Math.max(6,iw*frac),6,3); ctx.fill(); }
+  ctx.textAlign='right'; ctx.font='700 9.5px -apple-system,sans-serif'; ctx.fillStyle=statCol;
+  ctx.fillText(stat,ix+iw,statY);
+}
+
+function drawFarm(now){
+  ctx.clearRect(0,0,CW,CH);
+  const n=state.printers.length;
+  printerRects=[];
+  const cellW=CW/n;
+  for(let i=0;i<n;i++){
+    const x=i*cellW;
+    printerRects.push({x,y:0,w:cellW,h:CH});
+    drawPrinter(state.printers[i], x, 0, cellW, CH, now);
+  }
+  drawParticles();
+}
+
+/* ---------- orders tray (DOM) ---------- */
+function buildOrders(){
+  orderRefs={};
+  const box=$('orders'); box.innerHTML='';
+  if(!state.orders.length){
+    const d=document.createElement('div'); d.className='empty'; d.textContent='No orders yet - customers inbound…'; box.appendChild(d);
+  }
+  for(const o of state.orders){
+    const fil=filById(o.color);
+    const card=document.createElement('div');
+    card.className='order'+(o.id===selectedId?' sel':'');
+    const risk='🍝'.repeat(L.riskOf(o));
+    card.innerHTML=
+      '<div class="o-top"><span class="o-name">'+o.emoji+' '+o.item+'</span><span class="o-pay">$'+o.pay+'</span></div>'+
+      '<div class="o-fil"><i style="background:'+fil.hex+'"></i>'+fil.name+' PLA</div>'+
+      '<div class="o-meta"><span class="o-time">⏳</span><span>'+Math.round(o.dur/1000)+'s print · '+risk+'</span></div>'+
+      '<button class="brim'+(o.brim?' on':'')+(o.tricky&&!o.brim?' advise':'')+'">'+(o.brim?'BRIM ON':'+ BRIM')+'</button>'+
+      '<button class="decline" title="Decline">✕</button>'+
+      '<div class="o-bar"><b></b></div>';
+    card.addEventListener('click',()=>{
+      selectedId = (selectedId===o.id)?null:o.id; sfx.tap(); buildOrders();
+    });
+    card.querySelector('.decline').addEventListener('click',e=>{
+      e.stopPropagation(); if(selectedId===o.id) selectedId=null; L.decline(state,o.id); sfx.tap(); buildOrders();
+    });
+    card.querySelector('.brim').addEventListener('click',e=>{
+      e.stopPropagation(); L.toggleBrim(state,o.id); sfx.tap(); buildOrders();
+    });
+    box.appendChild(card);
+    orderRefs[o.id]={bar:card.querySelector('.o-bar'), time:card.querySelector('.o-time')};
+  }
+}
+function updateOrderBars(){
+  for(const o of state.orders){
+    const r=orderRefs[o.id]; if(!r) continue;
+    const f=Math.max(0,o.patience/o.patienceMax);
+    r.bar.firstChild.style.width=(f*100)+'%';
+    r.bar.className='o-bar '+(f<0.25?'low':f<0.5?'mid':'');
+    r.time.textContent='⏳'+Math.ceil(o.patience/1000)+'s';
+  }
+}
+
+/* ---------- HUD ---------- */
+function updateHUD(){
+  $('money').textContent='$'+state.money;
+  $('clock').textContent=fmtT(state.t);
+  $('high').textContent='$'+Math.max(high,state.earned);
+  $('misses').innerHTML='<i class="'+(state.strikes>0?'hit':'')+'"></i><i class="'+(state.strikes>1?'hit':'')+'"></i><i class="'+(state.strikes>2?'hit':'')+'"></i>';
+}
+
+/* ---------- shop ---------- */
+function openShop(){ shopDirty=true; renderShop(); $('shopOverlay').classList.remove('hidden'); }
+function closeShop(){ $('shopOverlay').classList.add('hidden'); }
+function renderShop(){
+  const s=$('shopSheet');
+  let h='<h2>🛠 UPGRADES</h2><div class="note">Clock keeps running. Spend wisely, boss.</div>';
+  state.printers.forEach((p,pi)=>{
+    h+='<div class="uprow"><div><div class="u-name">'+(p.star?'⭐ ':'')+p.name+'</div><div class="u-desc">Filament: '+filById(p.color).name+'</div></div><div style="display:flex;gap:6px;">'
+      +'<button class="buy '+(p.ams?'owned':'')+'" data-buy="ams" data-p="'+pi+'" '+(p.ams||state.money<L.COST.ams?'disabled':'')+'>'+(p.ams?'AMS ✓':'AMS $80')+'</button>'
+      +'<button class="buy '+(p.nozzle?'owned':'')+'" data-buy="nozzle" data-p="'+pi+'" '+(p.nozzle||state.money<L.COST.nozzle?'disabled':'')+'>'+(p.nozzle?'NOZ ✓':'NOZ+ $60')+'</button>'
+      +'</div></div>';
+  });
+  if(state.printers.length<2) h+='<div class="uprow"><div><div class="u-name">PrintyFresh 2</div><div class="u-desc">A second workhorse joins the farm</div></div><button class="buy" data-buy="printer2" '+(state.money<L.COST.printer2?'disabled':'')+'>$120</button></div>';
+  else if(state.printers.length<3) h+='<div class="uprow"><div><div class="u-name">PrintyFresh 3</div><div class="u-desc">Three printers, zero mercy</div></div><button class="buy" data-buy="printer3" '+(state.money<L.COST.printer3?'disabled':'')+'>$250</button></div>';
+  h+='<div class="uprow" style="border:none;padding-top:6px;"><div class="u-desc">AMS = 2s color swaps (vs 6s hand swap). NOZ+ = hardened nozzle, nearly halves spaghetti risk on that printer.</div></div>';
+  h+='<button class="closeBtn" id="closeShop">BACK TO THE FARM</button>';
+  s.innerHTML=h;
+  s.querySelector('#closeShop').addEventListener('click',closeShop);
+  s.querySelectorAll('[data-buy]').forEach(b=>b.addEventListener('click',()=>{
+    const what=b.getAttribute('data-buy'), pi=+(b.getAttribute('data-p')||-1);
+    let ok=false;
+    if(what==='printer2'||what==='printer3'){ ok=L.buy(state,what); if(ok){ sizeCanvas(); } }
+    else ok=L.buyFor(state,pi,what);
+    if(ok){ sfx.buy(); toast(what==='ams'?'AMS installed - 2s swaps':what==='nozzle'?'Hardened nozzle fitted':'New printer online!','good'); renderShop(); }
+  }));
+}
+$('shopBtn').addEventListener('click',()=>{ sfx.tap(); openShop(); });
+$('shopOverlay').addEventListener('click',e=>{ if(e.target===$('shopOverlay')) closeShop(); });
+
+/* ---------- game over ---------- */
+function showOver(){
+  saveHigh(state.earned);
+  $('finalEarn').textContent='$'+state.earned;
+  $('bestLine').textContent = state.earned>=high ? 'NEW BEST SHIFT 🏆' : 'Best shift: $'+high;
+  $('overStats').textContent = state.printed+' prints shipped · '+fmtT(state.t)+' on the clock';
+  $('overOverlay').classList.remove('hidden');
+}
+$('again').addEventListener('click',()=>{ $('overOverlay').classList.add('hidden'); newGame(); });
+
+function newGame(){
+  state=L.createGame((Date.now()%2147483647));
+  selectedId=null; particles=[];
+  $('orders').scrollLeft=0;
+  buildOrders(); updateHUD(); sizeCanvas();
+}
+
+/* ---------- events ---------- */
+function printerCenter(pi){ const r=printerRects[pi]; return r?{x:r.x+r.w/2,y:r.y+r.h/2}:{x:CW/2,y:CH/2}; }
+function handleEvents(evs){
+  let ordersChanged=false;
+  for(const e of evs){
+    if(e.type==='spawn'){ sfx.spawn(); ordersChanged=true; }
+    else if(e.type==='swapped'){ sfx.swap(); toast('Filament swapped: '+filById(e.color).name); }
+    else if(e.type==='complete'){ sfx.cash(); ordersChanged=true;
+      const c=printerCenter(e.printer); burst(c.x,c.y-10,filById(e.order.color).hex,16); floatText(c.x,c.y-24,'+$'+e.order.pay,'#3ddc84');
+      $('money').classList.remove('pop'); void $('money').offsetWidth; $('money').classList.add('pop');
+      toast(e.order.emoji+' '+e.order.item+' shipped! +$'+e.order.pay,'good');
+    }
+    else if(e.type==='spaghetti'){ sfx.fail();
+      const c=printerCenter(e.printer); burst(c.x,c.y,'#ff5252',18);
+      toast('🍝 Spaghetti on '+state.printers[e.printer].name+'! Tap it to clean.','bad');
+    }
+    else if(e.type==='expired'){ sfx.expire(); ordersChanged=true;
+      if(selectedId===e.order.id) selectedId=null;
+      toast('❌ '+e.order.item+' order walked.','bad');
+    }
+    else if(e.type==='gameover'){ setTimeout(showOver,700); }
+  }
+  if(ordersChanged) buildOrders();
+}
+
+/* ---------- input ---------- */
+cv.addEventListener('click',e=>{
+  const rect=cv.getBoundingClientRect();
+  const x=(e.clientX-rect.left), y=(e.clientY-rect.top);
+  const pi=printerRects.findIndex(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h);
+  if(pi<0) return;
+  const p=state.printers[pi];
+  if(state.over) return;
+  if(p.phase==='spaghetti'){ if(L.clean(state,pi)){ sfx.tap(); toast('Scraping the bed…'); } return; }
+  if(selectedId!=null){
+    if(p.phase!=='idle'){ toast('That printer is busy.','bad'); return; }
+    const r=L.assign(state,selectedId,pi);
+    if(r.ok){ sfx.assign();
+      if(r.swapDur>0) toast('Swapping to '+filById(state.printers[pi].job.order.color).name+' ('+Math.round(r.swapDur/1000)+'s)');
+      selectedId=null; buildOrders();
+    }
+  } else if(p.phase==='idle'){ toast('Pick an order first.'); }
+});
+
+/* ---------- main loop ---------- */
+let last=0;
+function frame(ts){
+  if(!last) last=ts;
+  const dt=Math.min(120, ts-last); last=ts;
+  if(!PAUSED && !state.over){ handleEvents(L.tick(state,dt)); }
+  stepParticles(dt);
+  drawFarm(ts);
+  updateOrderBars();
+  updateHUD();
+  requestAnimationFrame(frame);
+}
+
+/* ---------- demo driver (screenshots only) ---------- */
+const demo=(location.hash.match(/demo=(\w+)/)||[])[1];
+newGame();
+if(demo==='mess'){
+  PAUSED=true;
+  state=L.createGame(7);
+  state.t=96000; state.money=74; state.earned=96; state.printed=6; state.strikes=2;
+  state.printers.push(L.newPrinter('PrintyFresh 2'));
+  state.printers[0].phase='spaghetti'; state.printers[0].messColor='pink';
+  state.printers[1].phase='cleaning'; state.printers[1].cleanT=900;
+  state.orders=[
+    {id:1,item:'Gear Assembly',emoji:'⚙️',fail:.12,tricky:false,color:'navy',pay:19,dur:28000,patience:30000,patienceMax:44000,brim:false},
+    {id:2,item:'Piggy Bank',emoji:'🐷',fail:.09,tricky:false,color:'green',pay:21,dur:30000,patience:12000,patienceMax:40000,brim:false},
+  ];
+  state.nextOrderId=3; state.spawnIn=99999;
+  buildOrders(); updateHUD(); sizeCanvas();
+}
+else if(demo==='mid'||demo==='shop'||demo==='over'){
+  PAUSED=true;
+  state=L.createGame(7);
+  state.t=221000; state.money=128; state.earned=212; state.printed=14; state.strikes=1;
+  state.printers.push(L.newPrinter('PrintyFresh 2'));
+  state.printers[0].ams=true; state.printers[0].color='orange';
+  const o1={id:101,item:'Flexi Dragon',emoji:'🐉',fail:.16,tricky:true,color:'orange',pay:26,dur:34000,patience:1,patienceMax:1,brim:true};
+  state.printers[0].job={order:o1,phase:'print',t:21080,swapDur:0,dur:40000,failAt:null};
+  state.printers[0].phase='print';
+  const o2={id:102,item:'Voron Cube',emoji:'🧊',fail:.05,color:'navy',pay:11,dur:14000,patience:1,patienceMax:1,brim:false};
+  state.printers[1].job={order:o2,phase:'swap',t:3400,swapDur:6000,dur:14000,failAt:null};
+  state.printers[1].phase='swap';
+  state.orders=[
+    {id:1,item:'Benchy',emoji:'🚤',fail:.06,tricky:false,color:'white',pay:12,dur:18000,patience:38000,patienceMax:46000,brim:false},
+    {id:2,item:'Flexi Cat',emoji:'🐱',fail:.10,tricky:false,color:'pink',pay:15,dur:24000,patience:9000,patienceMax:42000,brim:false},
+    {id:3,item:'Mini Toews',emoji:'🐈',fail:.14,tricky:true,color:'black',pay:25,dur:32000,patience:26000,patienceMax:48000,brim:true},
+  ];
+  state.nextOrderId=4; state.spawnIn=99999;
+  selectedId=3;
+  buildOrders(); updateHUD(); sizeCanvas();
+  if(demo==='shop') openShop();
+  if(demo==='over'){ state.over=true; showOver(); }
+}
+window.__getState=()=>state;
+window.addEventListener('resize',sizeCanvas);
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
