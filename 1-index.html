@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Nick's Arcade</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;min-height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:radial-gradient(ellipse at 50% -10%,#3b2a63,#191225 60%,#0d0a14);
+    color:#f4ead8;min-height:100vh;
+    padding:calc(env(safe-area-inset-top) + 10px) 18px calc(env(safe-area-inset-bottom) + 24px);
+  }
+  #wrap{max-width:460px;margin:0 auto;}
+  header{text-align:center;margin:26px 0 6px;}
+  h1{margin:0;font-size:34px;letter-spacing:3px;
+    background:linear-gradient(90deg,#ffd98a,#f07b4f,#c94b6d);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  #sub{opacity:.65;font-size:13px;letter-spacing:1px;margin-top:6px;}
+  .card{
+    display:block;text-decoration:none;color:inherit;border-radius:22px;
+    margin:22px 0;padding:24px 22px;position:relative;overflow:hidden;
+    box-shadow:0 10px 30px rgba(0,0,0,.45);transition:transform .12s;
+  }
+  .card:active{transform:scale(.97);}
+  .card h2{margin:0 0 6px;font-size:26px;letter-spacing:1px;}
+  .card p{margin:0;font-size:14.5px;line-height:1.55;opacity:.92;}
+  .card .play{
+    display:inline-block;margin-top:14px;background:rgba(255,255,255,.92);color:#222;
+    font-weight:800;font-size:15px;border-radius:12px;padding:10px 26px;letter-spacing:.5px;
+  }
+  .card .emoji{position:absolute;right:14px;top:8px;font-size:74px;opacity:.28;transform:rotate(8deg);}
+  #sandcastle{background:linear-gradient(150deg,#7a2d5e,#c94b6d 45%,#f07b4f 80%,#f7b267);}
+  #bankroll{background:linear-gradient(150deg,#083d23,#0d5c34 50%,#12784a);}
+  #bankroll h2{color:#f5c453;}
+  #dailyword{background:linear-gradient(150deg,#1d3a6b,#0b162a 55%,#31200f);}
+  #dailyword h2{color:#f0803c;}
+  #printrun{background:linear-gradient(150deg,#2b1603,#57300a 55%,#8a4a13);}
+  #printrun h2{color:#ff8a3d;}
+  #mathcross{background:linear-gradient(150deg,#0f2e3d,#134e4a 55%,#0d9488);}
+  #mathcross h2{color:#5eead4;}
+  #queens{background:linear-gradient(150deg,#2e1065,#4c1d95 55%,#7c3aed);}
+  #queens h2{color:#e9d5ff;}
+  #printrunclassic{background:linear-gradient(150deg,#3b0a0a,#7f1d1d 55%,#b91c1c);}
+  #printrunclassic h2{color:#fca5a5;}
+  #soon{
+    border:2px dashed rgba(244,234,216,.25);background:transparent;text-align:center;
+    color:rgba(244,234,216,.55);box-shadow:none;
+  }
+  #soon h2{font-size:18px;color:inherit;}
+  footer{text-align:center;font-size:12px;opacity:.4;margin-top:34px;letter-spacing:.5px;}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <header>
+    <h1>NICK'S ARCADE</h1>
+    <div id="sub">NEW GAME EVERY DAY &middot; STREAKS KEEP SCORE</div>
+  </header>
+
+  <a class="card" id="sandcastle" href="./sandcastle.html">
+    <div class="emoji">&#127958;</div>
+    <h2>&#127958; SANDCASTLE</h2>
+    <p>The tide takes one letter at a time. Rebuild a real word from what's left, down to a 3-letter word. Pick the wrong letter to lose and the sand runs out of words.</p>
+    <span class="play">Play today's tide</span>
+  </a>
+
+  <a class="card" id="bankroll" href="./bankroll.html">
+    <div class="emoji">&#129689;</div>
+    <h2>&#129689; BANKROLL</h2>
+    <p>One fat word sits in the vault. Cash out real words - every chip can only be spent once. Empty the tray for the clean sweep, beat par for the jackpot.</p>
+    <span class="play">Crack today's vault</span>
+  </a>
+
+  <a class="card" id="dailyword" href="./nicks-daily-word.html">
+    <div class="emoji">&#128059;</div>
+    <h2>&#128059; DAILY WORD</h2>
+    <p>One word a day, six guesses, Bears colors. Streaks and stats keep score, and the share grid does the bragging for you.</p>
+    <span class="play">Play today's word</span>
+  </a>
+
+  <a class="card" id="printrun" href="./print-run.html">
+    <div class="emoji">&#128424;</div>
+    <h2>&#128424; PRINT RUN</h2>
+    <p>You are the print farm. Take the right contracts, stock filament by the gram, and queue jobs on PrintyFresh - mismanage it and things spaghetti.</p>
+    <span class="play">Open the shop</span>
+  </a>
+
+  <a class="card" id="mathcross" href="./math-cross.html">
+    <div class="emoji">&#10135;</div>
+    <h2>&#10135; MATH CROSS</h2>
+    <p>Every row and every column is a true equation. Nine squares, six equations, one unique solution - fill the blanks and light up the whole grid.</p>
+    <span class="play">Solve today's grid</span>
+  </a>
+
+  <a class="card" id="queens" href="./queens.html">
+    <div class="emoji">&#128081;</div>
+    <h2>&#128081; QUEENS</h2>
+    <p>One queen per row, per column, and per color - and no two queens may touch, not even diagonally. Pure logic, one new board a day.</p>
+    <span class="play">Rule today's board</span>
+  </a>
+
+  <a class="card" id="printrunclassic" href="./print-run-classic.html">
+    <div class="emoji">&#9889;</div>
+    <h2>&#9889; PRINT RUN CLASSIC</h2>
+    <p>The reflex original, back by request. Orders slide in hot, printers jam, spaghetti flies - tap fast and ship faster.</p>
+    <span class="play">Play the original</span>
+  </a>
+
+  <div class="card" id="soon">
+    <h2>More machines coming</h2>
+    <p>The arcade grows when new ideas earn a cabinet.</p>
+  </div>
+
+  <footer>a fresh game every day - generated right on your phone</footer>
+</div>
+</body>
+</html>
